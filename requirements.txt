@@ -1,0 +1,6 @@
+fastapi
+langchain
+dotenv
+chromadb
+sentence_transformers
+sqlalchemy

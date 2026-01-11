@@ -1,3 +1,7 @@
+"""
+Agent initialization module.
+"""
+
 import os
 from dotenv import load_dotenv
 from langchain.agent import create_agent
@@ -8,6 +12,9 @@ load_dotenv()
 os.environ["API_KEY"] = os.getenv("API_KEY")
 
 def init_agent():
+    """
+    Docstring for init_agent
+    """
     tool1 = tools.get_value
     tool2 = tools.search_documents
 

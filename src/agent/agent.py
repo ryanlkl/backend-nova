@@ -1,11 +1,11 @@
 import os
 from dotenv import load_dotenv
-from langchain.agent import create_agent
+from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 import tools
 
 load_dotenv()
-os.environ["API_KEY"] = os.getenv("API_KEY")
+os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
 def init_agent():
     tool1 = tools.get_value
@@ -15,7 +15,7 @@ def init_agent():
         model="gpt-4o",
         temperature=0.1,
         max_tokens=1000,
-        timout=30
+        timeout=30
     )
 
     agent = create_agent(

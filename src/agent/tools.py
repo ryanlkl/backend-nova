@@ -8,11 +8,6 @@ def connect_to_chroma():
         return collection
     except Exception as e:
         return None
-    
-@tool
-def get_value(input: str) -> int:
-    """get a value based on an input"""
-    return 1
 
 @tool
 def search_documents(query: str) -> str:

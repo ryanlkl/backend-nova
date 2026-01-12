@@ -6,17 +6,14 @@ import os
 from dotenv import load_dotenv
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
-import tools
+from src.agent import tools
 
 load_dotenv()
 os.environ["OPENAI_API_KEY"] = os.getenv("OPENAI_API_KEY")
 
 def init_agent():
-    """
-    Docstring for init_agent
-    """
-    tool1 = tools.get_value
-    tool2 = tools.search_documents
+
+    search_document_tool = tools.search_documents
 
     model = ChatOpenAI(
         model="gpt-4o",
@@ -27,8 +24,8 @@ def init_agent():
 
     agent = create_agent(
         model=model,
-        tools = [tool1, tool2],
-        system_prompt="System prompt",
+        tools = [search_document_tool],
+        system_prompt="You are an assistant, helping users with their queries.",
     )
     
     return agent

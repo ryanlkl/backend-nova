@@ -3,7 +3,7 @@ from langchain.tools import tool
 
 def connect_to_chroma():
     try:
-        client = chromadb.HttpClient(host="localhost", port=8000)
+        client = chromadb.HttpClient(host="localhost", port=8080)
         collection = client.get_collection(name="docs")
         return collection
     except Exception as e:

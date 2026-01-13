@@ -9,4 +9,4 @@ To run the ChromaDB Server:
 ```chroma run --host localhost --port 8080 --path ./my_chroma_data```
 
 To run FastAPI Backend:
-```uvicorn main:app --reload --host 8000```
+```uvicorn main:app --reload --port 8000```

@@ -1,0 +1,20 @@
+# venv
+
+Create a virtual environment with python version 3.11 or lower.
+Enter the virtual environment
+Pip install all the packages
+
+# .env
+
+Create a .env file
+Populate the OPENAI_API_KEY field with the key
+
+# fast api
+
+'uvicorn main:app --reload --port 8000'
+
+# chroma
+
+'chroma run --host localhost --port 8080 --path ./my_chroma_data'
+python config/chroma.py
+

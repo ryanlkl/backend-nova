@@ -3,8 +3,14 @@ Docstring for services.legislation
 """
 
 class LegislationService:
+    """
+    Docstring for LegislationService
+    """
     @staticmethod
     def get_legislation_info():
+        """
+        Docstring for get_legislation_info
+        """
         return {
             "name": "Data Protection Act",
             "year": 2018,

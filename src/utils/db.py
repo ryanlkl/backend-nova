@@ -27,7 +27,7 @@ engine = create_engine(
     pool_recycle=3600,  # Recycle connections every hour
     connect_args={
         "connect_timeout": 10,
-        "application_name": "booking_system"
+        "application_name": "nova_app"
     }
 )
 

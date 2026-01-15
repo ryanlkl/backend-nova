@@ -6,3 +6,4 @@ sentence_transformers
 sqlalchemy
 supabase
 psycopg2
+boto3

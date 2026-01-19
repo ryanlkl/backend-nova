@@ -1,5 +1,5 @@
 """
-Docstring for routers.legislation
+Legislation router module
 """
 
 from fastapi import APIRouter, Depends
@@ -13,14 +13,14 @@ legislation_router = APIRouter(prefix="/legislation")
 @legislation_router.get("/")
 async def list_legislation(db: Session = Depends(get_db)):
     """
-    Docstring for list_legislation
+    Lists all legislation entries
     """
     return {"message": "List of legislation"}
 
 @legislation_router.get("/{legislation_id}")
 async def get_legislation(legislation_id: str, db: Session = Depends(get_db)):
     """
-    Docstring for get_legislation
+    Retrieves details of a specific legislation entry
     
     :type legislation_id: str
     """

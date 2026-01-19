@@ -14,3 +14,5 @@ collection = client.get_or_create_collection(
     name="docs",
     embedding_function=sentence_transformer_ef
 )
+
+# Create fnction to retrieve documents by embedding

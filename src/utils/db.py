@@ -72,3 +72,6 @@ async def get_db():
     finally:
         if db:
             db.close()
+
+# Create function to retrieve from supabase
+

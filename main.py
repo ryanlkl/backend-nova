@@ -6,7 +6,7 @@ from src.routers.agent import agent_router
 from src.routers.legislation import legislation_router
 from src.routers.market import market_router
 from src.routers.payment import payment_router
-from src.models.legislation import Legislation
+from src.models.market import Market  # Ensure Market model is imported
 
 app = FastAPI(root_path="/api/v1")
 ## Include routers

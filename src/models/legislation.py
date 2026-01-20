@@ -2,7 +2,7 @@
 Legislation database model
 """
 from datetime import datetime
-from sqlalchemy import Column, Text, Uuid
+from sqlalchemy import Column, Text, Uuid, Enum
 from src.utils.db import Base, engine
 
 class Legislation(Base):
@@ -24,16 +24,21 @@ class Legislation(Base):
     id = Column(Uuid, primary_key=True, index=True)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
-    source_url = Column(Text, nullable=True)
+    source = Column(Text, nullable=False)
+    file_type = Column(Enum("pdf", "docx", "csv", "xlsx", "pptx", name="file_types"), nullable=False)
     created_at = Column(Text, default=datetime.now().isoformat())
-    updated_at = Column(Text, default=datetime.now().isoformat(), onupdate=datetime.now().isoformat())
+    updated_at = Column(
+        Text,
+        default=datetime.now().isoformat(),
+        onupdate=datetime.now().isoformat()
+    )
     def __repr__(self):
         """
         Returns a string representation of the Legislation instance
         
         :param self: The Legislation instance
         """
-        return f"<Legislation(title={self.title}, version={self.version})>"
+        return f"<Legislation(title={self.title}, source={self.source})>"
     
     def to_dict(self):
         """
@@ -45,11 +50,10 @@ class Legislation(Base):
             "id": str(self.id),
             "title": self.title,
             "description": self.description,
-            "effective_date": self.effective_date,
-            "version": self.version,
-            "source_url": self.source_url,
+            "source": self.source,
+            "file_type": self.file_type,
             "created_at": self.created_at,
             "updated_at": self.updated_at
         }
-    
+
 Base.metadata.create_all(bind=engine)

@@ -2,7 +2,7 @@
 Market database model
 """
 from datetime import datetime
-from sqlalchemy import Column, Text, Uuid
+from sqlalchemy import Column, Text, Uuid, Enum
 from src.utils.db import Base, engine
 
 class Market(Base):
@@ -25,6 +25,7 @@ class Market(Base):
     title = Column(Text, unique=True, nullable=False)
     description = Column(Text, nullable=True)
     source = Column(Text, nullable=False)
+    file_type = Column(Enum("pdf", "docx", "csv", "xlsx", "pptx", name="file_types"), nullable=False)
     created_at = Column(Text, default=datetime.now().isoformat())
     updated_at = Column(
         Text,
@@ -49,7 +50,9 @@ class Market(Base):
         return {
             "id": self.id,
             "title": self.title,
+            "description": self.description,
             "source": self.source,
+            "file_type": self.file_type,
             "created_at": self.created_at,
             "updated_at": self.updated_at
         }

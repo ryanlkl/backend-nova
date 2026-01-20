@@ -22,11 +22,11 @@ async def get_content(content_id: str):
     return {"message": f"Details of content {content_id}"}
 
 @content_router.post("/") # Include appropriate schema
-async def create_content():
+async def upload_content():
     """
-    Docstring for create_content
+    Docstring for upload_content
     """
-    return {"message": "Content created"}
+    return {"message": "Content uploaded"}
 
 @content_router.delete("/{content_id}")
 async def delete_content(content_id: str):

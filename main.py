@@ -5,6 +5,7 @@ from fastapi import FastAPI
 from src.routers.agent import agent_router
 from src.routers.legislation import legislation_router
 from src.routers.market import market_router
+from src.routers.notification import notif_router
 from src.routers.payment import payment_router
 from src.routers.content import content_router
 from src.models.legislation import Legislation  # Ensure models are imported
@@ -18,6 +19,7 @@ app.include_router(legislation_router)
 app.include_router(market_router)
 app.include_router(payment_router)
 app.include_router(content_router)
+app.include_router(notif_router)
 
 @app.get("/")
 def example_route():

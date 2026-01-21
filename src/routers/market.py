@@ -15,6 +15,7 @@ market_router = APIRouter(prefix="/market")
 async def list_market_items(db: Session = Depends(get_db)):
     """
     Docstring for list_market_items
+    Additional filtering and pagination can be added as needed
     """
     return {"message": "List of market items"}
 

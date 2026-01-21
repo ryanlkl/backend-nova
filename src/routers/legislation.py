@@ -14,6 +14,7 @@ legislation_router = APIRouter(prefix="/legislation")
 async def list_legislation(db: Session = Depends(get_db)):
     """
     Lists all legislation entries
+    Additional filtering and pagination can be added as needed
     """
     return {"message": "List of legislation"}
 

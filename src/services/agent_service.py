@@ -1,17 +1,16 @@
 """
 Docstring for services.agent
 """
-from ..agent.agent import init_agent
+from src.utils.agent import init_agent
 
-def exec_query(query):
-    agent = init_agent()
+def exec_query(query, agent):
 
     res = agent.invoke(
     {"messages": [{"role": "user", "content": query}]})
     
     return res["messages"][-1].content
-
-print(exec_query("Hi, can you please tell me about DSBC?"))
+    
+    
 
 '''
 Answer:

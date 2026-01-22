@@ -1,18 +1,16 @@
-"""
-Docstring for utils.chroma
-"""
 import chromadb
-import chromadb.utils.embedding_functions as ef
+from dotenv import load_dotenv
+import os
 
-sentence_transformer_ef = ef.SentenceTransformerEmbeddingFunction(
-    model_name="all-MiniLM-L6-v2"
-)
+load_dotenv()
+api_key = os.getenv("CHROMA_API_KEY")
+tenant_key = os.getenv("CHROMA_TENANT_KEY")
 
-client = chromadb.HttpClient(host="localhost", port=8080)
 
-collection = client.get_or_create_collection(
-    name="docs",
-    embedding_function=sentence_transformer_ef
-)
-
-# Create fnction to retrieve documents by embedding
+def connect_to_chroma():
+    client = chromadb.CloudClient(
+        api_key=api_key,
+        tenant=tenant_key,
+        database='chroma-prod'
+    )
+    return client

@@ -1,8 +1,10 @@
 """
 Docstring for routers.agent
 """
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from src.schema.agent import AgentQuery
+from src.utils.agent import agent 
+from src.services.agent_service import exec_query
 
 agent_router = APIRouter(prefix="/agent")
 
@@ -12,4 +14,5 @@ async def query_agent(query: AgentQuery):
     """
     Endpoint retrieves agent query for processing
     """
-    return {"message": "Agent queried"}
+    res = exec_query(query.query, agent)
+    return {"message": res}

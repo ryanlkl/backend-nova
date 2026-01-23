@@ -3,9 +3,9 @@ Docstring for schema.content
 """
 from pydantic import BaseModel
 
-class ContentResponse(BaseModel):
+class ContentRequestSchema(BaseModel):
     """
-    Docstring for ContentResponse
+    Docstring for ContentRequestSchema
     """
     title: str
     description: str

@@ -2,7 +2,7 @@
 Docstring for routers.content
 """
 from fastapi import APIRouter
-from src.schema.content import ContentResponse
+from src.schema.content import ContentRequestSchema
 
 content_router = APIRouter(prefix="/content")
 
@@ -33,7 +33,7 @@ async def download_content(content_id: str):
     return {"message": f"Content {content_id} downloaded"}
 
 @content_router.post("/") # Include appropriate schema
-async def upload_content(response: ContentResponse):
+async def upload_content(request: ContentRequestSchema):
     """
     Uploads new content to the system
     """

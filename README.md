@@ -111,3 +111,7 @@ Contains all pdf's of legislation
 This will be where all the content from content hub will be uploaded and downloaded from
 ## Vector Database (Chroma DB)
 ### Collections
+#### legislation
+Contains all docs for scraped legislation
+#### market_trends
+Contains all docs for scraped market_trends

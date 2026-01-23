@@ -2,7 +2,7 @@
 Docstring for models.content
 """
 from datetime import datetime
-from sqlalchemy import Column, Integer, Text, Enum
+from sqlalchemy import Column, Uuid, Text, Enum
 from src.utils.db import Base, engine
 
 class Insight(Base):
@@ -11,7 +11,7 @@ class Insight(Base):
     """
     __tablename__ = "insights"
 
-    id = Column(Integer, primary_key=True, index=True)
+    id = Column(Uuid, primary_key=True, index=True)
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
     source = Column(Text, nullable=False)

@@ -7,3 +7,4 @@ sqlalchemy
 supabase
 psycopg2
 boto3
+langchain-openai

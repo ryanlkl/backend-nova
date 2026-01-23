@@ -21,3 +21,12 @@ SUPABASE_URL = os.getenv("supabase_url")
 AWS_ACCESS_KEY_ID = os.getenv("aws_access_key_id")
 AWS_SECRET_ACCESS_KEY = os.getenv("aws_secret_access_key")
 AWS_REGION = os.getenv("aws_region")
+
+# CHROMA CONFIGURATION
+CHROMA_API_KEY = os.getenv("chroma_api_key")
+CHROMA_TENANT_KEY = os.getenv("chroma_tenant_key")
+CHROMA_HOST = os.getenv("chroma_host")
+CHROMA_PORT = os.getenv("chroma_port")
+
+# OPENAI CONFIGURATION
+OPENAI_API_KEY = os.getenv("openai_api_key")

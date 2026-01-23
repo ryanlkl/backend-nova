@@ -1,13 +1,14 @@
+"""
+Docstring for agent.tools
+"""
 from langchain.tools import tool
-from src.utils.chroma import connect_to_chroma
+from src.utils.chroma import chroma_client
 
 @tool
 def search_legislation(query: str) -> str:
     """Search legislative documents for relevant information and return the top 3 results"""
     
-    client = connect_to_chroma()
-    
-    collection = client.get_collection("legislation")
+    collection = chroma_client.get_collection("legislation")
     
     if collection:
         results = collection.query(
@@ -27,9 +28,7 @@ def search_legislation(query: str) -> str:
 def search_market(query: str) -> str:
     """Search market documents for relevant information and return the top 3 results"""
     
-    client = connect_to_chroma()
-    
-    collection = client.get_collection("market")
+    collection = chroma_client.get_collection("market")
     
     if collection:
         results = collection.query(
@@ -49,9 +48,7 @@ def search_market(query: str) -> str:
 def search_payments(query: str) -> str:
     """Search payment documents for relevant information and return the top 3 results"""
     
-    client = connect_to_chroma()
-    
-    collection = client.get_collection("market")
+    collection = chroma_client.get_collection("payments")
     
     if collection:
         results = collection.query(

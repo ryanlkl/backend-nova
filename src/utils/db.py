@@ -74,4 +74,3 @@ async def get_db():
             db.close()
 
 # Create function to retrieve from supabase
-

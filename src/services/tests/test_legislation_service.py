@@ -1,8 +1,8 @@
 """
 Unit tests for LegislationService
 """
-import pytest
 from unittest.mock import Mock, AsyncMock, patch
+import pytest
 from sqlalchemy.orm import Session
 from fastapi import HTTPException
 

@@ -1,7 +1,6 @@
 """
 Docstring for utils.db
 """
-from sqlite3 import OperationalError
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -18,7 +17,6 @@ from app_config import (
 
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
 
-# Create engine with proper connection pooling and timeout settings
 engine = create_engine(
     DATABASE_URL,
     pool_size=10,
@@ -31,27 +29,10 @@ engine = create_engine(
     }
 )
 
-# Simple client creation - no options needed for your use case
 supabase = create_client(
     supabase_url=SUPABASE_URL,
     supabase_key=SUPABASE_SERVICE_ROLE
 )
-
-try:
-    with engine.connect() as connection:
-        print("Database connection successful")
-except TimeoutError:
-    print("Database connection timed out")
-except ConnectionError:
-    print("Database connection error")
-except OperationalError:
-    print("Operational error during database connection")
-except ImportError:
-    print("Database driver not found")
-except MemoryError:
-    print("Insufficient memory to connect to the database")
-except Exception as e:
-    print(f"Database connection failed: {e}")
 
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
@@ -72,5 +53,3 @@ async def get_db():
     finally:
         if db:
             db.close()
-
-# Create function to retrieve from supabase

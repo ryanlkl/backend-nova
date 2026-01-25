@@ -27,5 +27,15 @@ jobs:
         pip install -r requirements.txt
 
     - name: Run Tests
+      env:
+        DB_USER: test_user
+        DB_PASSWORD: test_password
+        DB_HOST: localhost
+        DB_PORT: "5432"
+        DB_NAME: test_db
+        SUPABASE_URL: https://test.supabase.co
+        SUPABASE_SERVICE_ROLE: test-service-key
+        CHROMA_API_KEY: test-chroma-key
+        CHROMA_TENANT_KEY: test-tenant-key
       run: |
-        pytest
+        pytest -v --tb=short

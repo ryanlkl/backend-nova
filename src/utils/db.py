@@ -37,22 +37,6 @@ supabase = create_client(
     supabase_key=SUPABASE_SERVICE_ROLE
 )
 
-try:
-    with engine.connect() as connection:
-        print("Database connection successful")
-except TimeoutError:
-    print("Database connection timed out")
-except ConnectionError:
-    print("Database connection error")
-except OperationalError:
-    print("Operational error during database connection")
-except ImportError:
-    print("Database driver not found")
-except MemoryError:
-    print("Insufficient memory to connect to the database")
-except Exception as e:
-    print(f"Database connection failed: {e}")
-
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

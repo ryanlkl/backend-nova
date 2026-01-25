@@ -25,7 +25,17 @@ class Legislation(Base):
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
     source = Column(Text, nullable=False)
-    file_type = Column(Enum("pdf", "docx", "csv", "xlsx", "pptx", name="file_types"), nullable=False)
+    file_type = Column(
+        Enum(
+            "pdf",
+            "docx",
+            "csv",
+            "xlsx",
+            "pptx",
+            name="file_types"
+        ),
+        nullable=False
+    )
     created_at = Column(Text, default=datetime.now().isoformat())
     updated_at = Column(
         Text,
@@ -39,7 +49,7 @@ class Legislation(Base):
         :param self: The Legislation instance
         """
         return f"<Legislation(title={self.title}, source={self.source})>"
-    
+
     def to_dict(self):
         """
         Converts the Legislation instance to a dictionary

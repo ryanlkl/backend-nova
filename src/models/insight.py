@@ -3,7 +3,7 @@ Docstring for models.content
 """
 from datetime import datetime
 from sqlalchemy import Column, Uuid, Text, Enum
-from src.utils.db import Base, engine
+from src.utils.db import Base
 
 class Insight(Base):
     """
@@ -38,7 +38,7 @@ class Insight(Base):
         :param self: The Insight instance
         """
         return {
-            "id": self.id,
+            "id": str(self.id),
             "title": self.title,
             "description": self.description,
             "source": self.source,

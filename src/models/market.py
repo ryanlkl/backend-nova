@@ -3,7 +3,7 @@ Market database model
 """
 from datetime import datetime
 from sqlalchemy import Column, Text, Uuid, Enum
-from src.utils.db import Base, engine
+from src.utils.db import Base
 
 class Market(Base):
     """
@@ -48,7 +48,7 @@ class Market(Base):
         :param self: The Market instance
         """
         return {
-            "id": self.id,
+            "id": str(self.id),
             "title": self.title,
             "description": self.description,
             "source": self.source,

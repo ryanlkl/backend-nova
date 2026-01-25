@@ -56,5 +56,3 @@ class Market(Base):
             "created_at": self.created_at,
             "updated_at": self.updated_at
         }
-
-Base.metadata.create_all(bind=engine)

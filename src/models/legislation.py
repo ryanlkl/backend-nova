@@ -3,7 +3,7 @@ Legislation database model
 """
 from datetime import datetime
 from sqlalchemy import Column, Text, Uuid, Enum
-from src.utils.db import Base, engine
+from src.utils.db import Base
 
 class Legislation(Base):
     """

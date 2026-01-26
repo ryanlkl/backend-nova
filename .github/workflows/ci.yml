@@ -33,7 +33,7 @@ jobs:
         DB_HOST: localhost
         DB_PORT: "5432"
         DB_NAME: test_db
-        SUPABASE_URL: https://test.supabase.co
+        SUPABASE_URL: https://xpbynjdyiailbufrverx.supabase.co
         SUPABASE_SERVICE_ROLE: test-service-key
       run: |
         echo "DB_USER=$DB_USER"

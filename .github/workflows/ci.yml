@@ -28,19 +28,13 @@ jobs:
 
     - name: Run Tests
       env:
-        DB_USER: test_user
-        DB_PASSWORD: test_password
-        DB_HOST: localhost
-        DB_PORT: "5432"
-        DB_NAME: test_db
-        SUPABASE_URL: https://xpbynjdyiailbufrverx.supabase.co
-        SUPABASE_SERVICE_ROLE: test-service-key
+        DB_USER: ${{ secrets.DB_USER }}
+        DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+        DB_HOST: ${{ secrets.DB_HOST }}
+        DB_PORT: ${{ secrets.DB_PORT }}
+        DB_NAME: ${{ secrets.DB_NAME }}
+        SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+        SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
+        SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
       run: |
-        echo "DB_USER=$DB_USER"
-        echo "DB_PASSWORD=$DB_PASSWORD"
-        echo "DB_HOST=$DB_HOST"
-        echo "DB_PORT=$DB_PORT"
-        echo "DB_NAME=$DB_NAME"
-        echo "SUPABASE_URL=$SUPABASE_URL"
-        echo "SUPABASE_SERVICE_ROLE=$SUPABASE_SERVICE_ROLE"
         pytest -v --tb=short

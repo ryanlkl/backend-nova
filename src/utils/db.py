@@ -29,11 +29,6 @@ engine = create_engine(
     }
 )
 
-supabase = create_client(
-    supabase_url=SUPABASE_URL,
-    supabase_key=SUPABASE_SERVICE_ROLE
-)
-
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
 

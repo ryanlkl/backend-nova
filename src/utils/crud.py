@@ -50,6 +50,8 @@ async def _apply_join_filters(query, join_filters: dict, join: list):
                         query = query.filter(getattr(join_table, field_name) == value)
                         break
 
+    return query
+
 async def _apply_subquery_filters(query, subquery_filters: list):
     """
     Helper function to apply subquery filters to a query
@@ -210,6 +212,8 @@ async def get_by_id(model, db: Session, record_id: str):
         if not record:
             raise HTTPException(status_code=404, detail="Record not found")
         return record.to_dict() if hasattr(record, 'to_dict') else record.__dict__.copy()
+    except HTTPException as e:
+        raise e
     except Exception as e:
         print(f"Error in get_by_id: {e}")
-        raise HTTPException(status_code=500, detail=f"Internal server error: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")

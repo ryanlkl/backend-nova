@@ -1,5 +1,5 @@
 """
-Docstring for services.market
+Market Service - Handles all database operations for market data
 """
 import base64
 
@@ -12,11 +12,12 @@ from src.models.market import Market
 from src.utils.crud import get_with_filters
 from src.utils.s3 import s3_client, download_from_s3
 
-
 class MarketService:
     """
-    Docstring for MarketService
+    Service class for market-related database operations.
+    Provides methods to retrieve market trend data from PostgreSQL.
     """
+
     @staticmethod
     async def list_market_items(db: Session):
         """

@@ -3,7 +3,7 @@ Legislation database model
 """
 from datetime import datetime
 from sqlalchemy import Column, Text, Uuid, Enum
-from src.utils.db import Base, engine
+from src.utils.db import Base
 
 class Legislation(Base):
     """
@@ -25,7 +25,17 @@ class Legislation(Base):
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
     source = Column(Text, nullable=False)
-    file_type = Column(Enum("pdf", "docx", "csv", "xlsx", "pptx", name="file_types"), nullable=False)
+    file_type = Column(
+        Enum(
+            "pdf",
+            "docx",
+            "csv",
+            "xlsx",
+            "pptx",
+            name="file_types"
+        ),
+        nullable=False
+    )
     created_at = Column(Text, default=datetime.now().isoformat())
     updated_at = Column(
         Text,
@@ -39,7 +49,7 @@ class Legislation(Base):
         :param self: The Legislation instance
         """
         return f"<Legislation(title={self.title}, source={self.source})>"
-    
+
     def to_dict(self):
         """
         Converts the Legislation instance to a dictionary
@@ -55,5 +65,3 @@ class Legislation(Base):
             "created_at": self.created_at,
             "updated_at": self.updated_at
         }
-
-Base.metadata.create_all(bind=engine)

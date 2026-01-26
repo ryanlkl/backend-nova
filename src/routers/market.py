@@ -2,7 +2,7 @@
 Docstring for routers.market
 """
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Query
 from sqlalchemy.orm import Session
 from fastapi import Depends
 from src.utils.db import get_db
@@ -17,13 +17,14 @@ async def list_market_items(db: Session = Depends(get_db)):
     Docstring for list_market_items
     Additional filtering and pagination can be added as needed
     """
-    return MarketService.list_market_items(db)
+    return await MarketService.list_market_items(db)
 
 @market_router.get("/{item_id}")
-async def get_market_item(item_id: str, db: Session = Depends(get_db)):
+async def get_market_item(item_id: str, bucket: str = Query(...)):
     """
     Docstring for get_market_item
     
     :type item_id: str
     """
-    return {"message": f"Details of market item {item_id}"}
+    return MarketService.get_market_object(item_id, bucket=bucket)
+

@@ -5,6 +5,8 @@ import base64
 
 from fastapi import HTTPException
 from sqlalchemy.orm import Session
+from botocore.exceptions import ClientError
+
 
 from src.models.market import Market
 from src.utils.crud import get_with_filters
@@ -25,7 +27,7 @@ class MarketService:
     @staticmethod
     def get_market_object(item_id: str, bucket: str):
         """
-        Retrieves a market object from storage by matching metadata id
+        Retrieves a market object from storage by matching metadata id/title or filename
         """
         if not bucket:
             raise HTTPException(status_code=400, detail="Bucket name is required")
@@ -44,7 +46,12 @@ class MarketService:
 
                 head = s3_client.head_object(Bucket=bucket, Key=key)
                 metadata = head.get("Metadata", {})
-                if metadata.get("id") == item_id:
+                filename = key.split("/")[-1]
+                stem = filename.rsplit(".", 1)[0]
+                match_id = metadata.get("id") == item_id
+                match_title = metadata.get("title") == item_id
+                match_filename = stem == item_id
+                if match_id or match_title or match_filename:
                     content = download_from_s3(bucket, key)
                     if content is None:
                         raise HTTPException(
@@ -66,3 +73,4 @@ class MarketService:
             continuation_token = response.get("NextContinuationToken")
 
         raise HTTPException(status_code=404, detail="Market object not found")
+    

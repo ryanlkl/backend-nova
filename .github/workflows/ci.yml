@@ -37,4 +37,11 @@ jobs:
         SUPABASE_KEY: ${{ secrets.SUPABASE_KEY }}
         SUPABASE_SERVICE_ROLE: ${{ secrets.SUPABASE_SERVICE_ROLE }}
       run: |
+        echo "DB_USER=$DB_USER"
+        echo "DB_PASSWORD=$DB_PASSWORD"
+        echo "DB_HOST=$DB_HOST"
+        echo "DB_PORT=$DB_PORT"
+        echo "DB_NAME=$DB_NAME"
+        echo "SUPABASE_URL=$SUPABASE_URL"
+        echo "SUPABASE_SERVICE_ROLE=$SUPABASE_SERVICE_ROLE"
         pytest -v --tb=short

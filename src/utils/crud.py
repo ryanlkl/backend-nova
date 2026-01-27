@@ -15,7 +15,10 @@ async def _join_tables(query, join: list):
     :type join: list
     """
     for table in join:
-        query = query.join(table)
+        try:
+            query = query.join(table)
+        except Exception as e:
+            raise HTTPException(500, "Error joining tables")
     return query
 
 async def _apply_filters(query, model, filters: dict):
@@ -29,7 +32,10 @@ async def _apply_filters(query, model, filters: dict):
     """
     for field, value in filters.items():
         if hasattr(model, field) and value is not None:
-            query = query.filter(getattr(model, field) == value)
+            try:
+                query = query.filter(getattr(model, field) == value)
+            except Exception as e:
+                raise HTTPException(500, f"Error applying filter {field} = {value}")
     return query
 
 async def _apply_join_filters(query, join_filters: dict, join: list):
@@ -61,7 +67,10 @@ async def _apply_subquery_filters(query, subquery_filters: list):
     :type subquery_filters: list
     """
     for filter_expression in subquery_filters:
-        query = query.filter(filter_expression)
+        try:
+            query = query.filter(filter_expression)
+        except Exception as e:
+            raise HTTPException(500, "Error applying subquery filter")
     return query
 
 async def _apply_date_range_filter(query, model, date_range: dict):
@@ -79,9 +88,15 @@ async def _apply_date_range_filter(query, model, date_range: dict):
 
     if hasattr(model, date_field):
         if start_date:
-            query = query.filter(getattr(model, date_field) >= start_date)
+            try:
+                query = query.filter(getattr(model, date_field) >= start_date)
+            except Exception as e:
+                raise HTTPException(500, "Error applying start range")
         if end_date:
-            query = query.filter(getattr(model, date_field) <= end_date)
+            try:
+                query = query.filter(getattr(model, date_field) <= end_date)
+            except Exception as e:
+                raise HTTPException(500, "Error applying end filter")
 
     return query
 
@@ -94,9 +109,15 @@ async def _order_query(query, model, order_by):
     :param order_by: Field to order results by
     """
     if hasattr(model, order_by):
-        query = query.order_by(getattr(model, order_by))
+        try:
+            query = query.order_by(getattr(model, order_by))
+        except Exception as e:
+            raise HTTPException(500, f"Error ordering by {order_by}")
     elif hasattr(model, 'created_at'):
-        query = query.order_by(getattr(model, 'created_at').desc())
+        try:
+            query = query.order_by(getattr(model, 'created_at').desc())
+        except Exception as e:
+            raise HTTPException(500, "Error ordering by 'created_at'")
     return query
 
 async def get_with_filters(

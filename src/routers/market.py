@@ -1,11 +1,13 @@
 """
 Market Router - API endpoints for market trend data
 """
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from src.utils.db import get_db
 from src.services.market import MarketService
+from uuid import UUID
 
 market_router = APIRouter(prefix="/market")
 
@@ -39,7 +41,7 @@ async def list_market_items(db: Session = Depends(get_db)):
 
 
 @market_router.get("/{item_id}")
-async def get_market_item(item_id: str, db: Session = Depends(get_db)):
+async def get_market_item(item_id: str, bucket: str = Query(...)):
     """
     Retrieves a specific market item by its ID.
 
@@ -56,7 +58,6 @@ async def get_market_item(item_id: str, db: Session = Depends(get_db)):
     """
     # Validate UUID format
     try:
-        from uuid import UUID
         UUID(item_id)
     except ValueError:
         raise HTTPException(

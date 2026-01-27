@@ -1,8 +1,9 @@
 """
 Legislation router module
 """
-
-from fastapi import APIRouter, Depends
+import io
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import StreamingResponse
 from sqlalchemy.orm import Session
 from src.utils.db import get_db
 from src.services.legislation import LegislationService
@@ -26,5 +27,19 @@ async def get_legislation(legislation_id: str, db: Session = Depends(get_db)):
     
     :type legislation_id: str
     """
-    response = await LegislationService.get_legislation_info(legislation_id, db)
-    return response
+    try:
+        result = await LegislationService.get_legislation_info(legislation_id, db)
+
+        file_stream = io.BytesIO(result["data"])
+
+        filename = result["filename"]
+
+        return StreamingResponse(
+            file_stream,
+            media_type="text/plain",
+            headers={
+                "Content-Disposition": f"attachment; filename={filename}"
+            }
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))

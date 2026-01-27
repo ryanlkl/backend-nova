@@ -10,9 +10,7 @@ from app_config import (
     DB_PASSWORD,
     DB_HOST,
     DB_PORT,
-    DB_NAME,
-    SUPABASE_URL,
-    SUPABASE_SERVICE_ROLE
+    DB_NAME
 )
 
 DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"

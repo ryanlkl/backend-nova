@@ -24,7 +24,7 @@ async def list_market_items(db: Session = Depends(get_db)):
         500 error if database query fails
     """
     try:
-        markets = MarketService.list_market_items(db)
+        markets = await MarketService.list_market_items(db)
         return {"data": markets, "count": len(markets)}
 
     except SQLAlchemyError as e:
@@ -41,7 +41,7 @@ async def list_market_items(db: Session = Depends(get_db)):
 
 
 @market_router.get("/{item_id}")
-async def get_market_item(item_id: str, bucket: str = Query(...)):
+async def get_market_item(item_id: str, bucket: str = Query(...), db: Session = Depends(get_db)):
     """
     Retrieves a specific market item by its ID.
 
@@ -66,7 +66,7 @@ async def get_market_item(item_id: str, bucket: str = Query(...)):
         )
 
     try:
-        market = MarketService.get_market_item_by_id(db, item_id)
+        market = MarketService.get_market_object(item_id, bucket)
 
         if not market:
             raise HTTPException(

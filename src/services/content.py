@@ -1,24 +1,119 @@
-
-
 """
 Docstring for services.content
 """
+import uuid
+from datetime import datetime, timezone
+from fastapi import  UploadFile
+
+from sqlalchemy.orm import Session
+from sqlalchemy import asc, desc
+from src.models.market import Market
+from src.models.legislation import Legislation
+from src.models.insight import Insight
+
+from src.utils.db import get_db
+from src.utils.s3 import upload_to_s3
+from src.schema.content import FilterParams, SortField, SortOrder, ContentType
+
+
 class ContentService:
     """
     Docstring for ContentService
     """
+    CONTENT_MAP = {
+        ContentType.market: {
+            "model": Market,
+            "bucket": "nova-market-trends-bucket",
+        },
+        ContentType.legislation: {
+            "model": Legislation,
+            "bucket": "nova-legislation-bucket",
+        },
+    }
+
+    @staticmethod
+    def list_content(db: Session, filters: FilterParams, apply_inner_sort: bool = True):
+        
+        # match to table we are fetching data from
+        content_map = {
+        ContentType.market: Market,
+        ContentType.legislation: Legislation,
+        ContentType.insight: Insight,
+        }
+
+        table = content_map[filters.content_type]
+        offset = filters.page * filters.page_size
+        query = db.query(table)
+
+        # if we want to sort at the individual table level
+        if apply_inner_sort:
+            columns_map = {
+                SortField.created_at: table.created_at,
+                SortField.updated_at: table.updated_at,
+                SortField.title: table.title,
+                SortField.source: table.source,
+            }
+
+            sort_column = columns_map[filters.sort_by]
+            sort_expression = (
+                asc(sort_column) if filters.order == SortOrder.asc else desc(sort_column)
+            )
+            query = query.order_by(sort_expression)
+
+        table_data = query.offset(offset).limit(filters.page_size).all()
+        total = db.query(table).count()
+
+        return {
+            "message": "success",
+            "table": filters.content_type.value,
+            "page": filters.page,
+            "page_size": filters.page_size,
+            "total": total,
+            "sort_by": filters.sort_by.value,
+            "order": filters.order.value,
+            "data": [m.to_dict() for m in table_data],
+        }
+
     
     @staticmethod
-    def list_content():
-        """
-        Docstring for list_content
-        """
-        return [
-            {"id": 1, "title": "Market Trends Q1"},
-            {"id": 2, "title": "Legislation Update"},
-            {"id": 3, "title": "Industry Insights"}
-        ]
-    
+    def list_all_content(db: Session, filters: FilterParams):
+
+        aggregated_data = []
+        total = 0
+
+        for content_type in (
+            ContentType.market,
+            ContentType.legislation, 
+            ContentType.insight):
+
+            # specify which table we are fetching data from and sort once for all aggregated records
+            scoped_filters = filters.model_copy(update={"content_type": content_type})
+            result = ContentService.list_content(db, scoped_filters, apply_inner_sort=False)
+
+            for item in result["data"]:
+                item["content_type"] = content_type.value
+                aggregated_data.append(item)
+
+            total += result["total"]
+
+        reverse = filters.order == SortOrder.desc
+        aggregated_data.sort(
+            key=lambda x: x[filters.sort_by.value],
+            reverse=reverse,
+        )
+        # Pagination after aggregation
+        start = filters.page * filters.page_size
+        end = start + filters.page_size
+
+        return {
+            "message": "success",
+            "content_type": "all",
+            "page": filters.page,
+            "page_size": filters.page_size,
+            "total": total,
+            "data": aggregated_data[start:end],
+        }
+
     @staticmethod
     def get_content(content_id: int):
         """
@@ -27,11 +122,70 @@ class ContentService:
         return {"id": content_id, "title": f"Content Item {content_id}", "details": "Detailed information about the content item."}
     
     @staticmethod
-    def upload_content(content_data: dict):
+    async def upload_content( 
+        content_type: ContentType,
+        db: Session, 
+        title: str,
+        description: str,
+        file: UploadFile,
+    ):
         """
         Docstring for upload_content
         """
-        return {"message": "Content uploaded successfully", "content": content_data}
+        if content_type not in ContentService.CONTENT_MAP:
+            raise ValueError(f"Unsupported content type: {content_type}")
+
+        model = ContentService.CONTENT_MAP[content_type]["model"]
+        bucket = ContentService.CONTENT_MAP[content_type]["bucket"]
+
+        ALLOWED_EXTENSIONS = {"pdf", "docx", "csv", "xlsx", "pptx"}
+        MAX_FILE_SIZE = 10 * 1024 * 1024
+
+        file_extension = file.filename.split(".")[-1].lower()
+        if file_extension not in ALLOWED_EXTENSIONS:
+            raise ValueError(
+                f"Invalid file type: {file_extension}. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
+            )
+
+        contents = await file.read()
+        if len(contents) > MAX_FILE_SIZE:
+            raise ValueError("File too large (max 10MB)")
+
+        file.file.seek(0)
+
+        entry = model(
+            id=uuid.uuid4(),
+            title=title,
+            description=description,
+            source="user",
+            file_type=file_extension,
+            created_at = datetime.now(timezone.utc).isoformat(),
+            updated_at = datetime.now(timezone.utc).isoformat()
+        )
+
+        try:
+            db.add(entry)
+            db.commit()
+            db.refresh(entry)
+
+            # Upload file to respective S3 bucket
+            upload_to_s3(
+                contents,
+                file_extension,
+                bucket,
+                f"{entry.id}.{file_extension}",
+            )
+
+        except Exception:
+            db.rollback()
+            raise
+
+        return {
+            "message": f"{content_type.value.capitalize()} data uploaded successfully",
+            "id": str(entry.id),
+            "file_type": file_extension,
+            "file_size_bytes": len(contents),
+        }
     
     @staticmethod
     def delete_content(content_id: int):

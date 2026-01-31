@@ -14,8 +14,10 @@ legislation_router = APIRouter(prefix="/legislation")
 async def list_legislation(db: Session = Depends(get_db)):
     """
     Lists all legislation entries
+    Additional filtering and pagination can be added as needed
     """
-    return {"message": "List of legislation"}
+    response = await LegislationService.list_legislation(db)
+    return response
 
 @legislation_router.get("/{legislation_id}")
 async def get_legislation(legislation_id: str, db: Session = Depends(get_db)):
@@ -24,4 +26,5 @@ async def get_legislation(legislation_id: str, db: Session = Depends(get_db)):
     
     :type legislation_id: str
     """
-    return {"message": f"Details of legislation {legislation_id}"}
+    response = await LegislationService.get_legislation_info(legislation_id, db)
+    return response

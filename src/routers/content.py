@@ -2,6 +2,7 @@
 Docstring for routers.content
 """
 from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, Query
+from pydantic import BaseModel, Field
 from sqlalchemy.orm import Session
 from sqlalchemy import asc, desc
 
@@ -13,6 +14,7 @@ from enum import Enum
 from typing import Annotated
 from datetime import datetime
 import uuid
+from src.schema.content import ContentRequestSchema
 
 content_router = APIRouter(prefix="/content")
 
@@ -20,20 +22,25 @@ class SortOrder(str, Enum):
     asc = "asc"
     desc = "desc"
 
+# set of values acceptable to sort records by 
 class SortField(str, Enum):
     created_at = "created_at"
     updated_at = "updated_at"
     title = "title"
     source = "source"
 
+class FilterParams(BaseModel):
+    page: int = Field(0, ge=0)
+    page_size: int = Field(10, ge=1, le=100)
+    sort_by: SortField = SortField.created_at
+    order: SortOrder = SortOrder.desc
+
+
 
 @content_router.get("/")
 async def list_content(
-    db: Session = Depends(get_db),
-    page: int = Query(0, ge=0),
-    page_size: int = Query(10, ge=1, le=100),
-    sort_by: SortField = SortField.created_at,
-    order: SortOrder = SortOrder.desc,
+    filter_query: Annotated[FilterParams, Depends()],
+    db: Session = Depends(get_db)
 ):
     """
     Paginate and sort Market records
@@ -44,38 +51,33 @@ async def list_content(
         SortField.title: Market.title,
         SortField.source: Market.source,
     }
-
-    sort_column = columns_map[sort_by]
+    sort_column = columns_map[filter_query.sort_by]
 
     sort_expression = (
-        asc(sort_column) if order == SortOrder.asc else desc(sort_column)
+        asc(sort_column) if filter_query.order == SortOrder.asc else desc(sort_column)
     )
-
-    offset = page * page_size
+    offset = filter_query.page * filter_query.page_size
 
     try:
         markets = (
             db.query(Market)
             .order_by(sort_expression)
             .offset(offset)
-            .limit(page_size)
+            .limit(filter_query.page_size)
             .all()
         )
-
         total = db.query(Market).count()
 
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"error when fetching items from database: {str(e)}")
 
-    
-
     return {
         "message": "success",
-        "page": page,
-        "page_size": page_size,
+        "page": filter_query.page,
+        "page_size": filter_query.page_size,
         "total": total,
-        "sort_by": sort_by.value,
-        "order": order.value,
+        "sort_by": filter_query.sort_by.value,
+        "order": filter_query.order.value,
         "data": [m.to_dict() for m in markets],
     }
 
@@ -85,7 +87,7 @@ async def get_content(
     content_id: str,
     db: Session = Depends(get_db)):
     """
-    Docstring for get_content
+    Retrieves details of a specific content item by its ID
     
     :type content_id: str
     """
@@ -166,7 +168,7 @@ async def upload_market(
 @content_router.delete("/{content_id}")
 async def delete_content(content_id: str):
     """
-    Docstring for delete_content
+    Deletes a specific content item by its ID
     
     :type content_id: str
     """

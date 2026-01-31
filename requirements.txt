@@ -8,3 +8,6 @@ supabase
 psycopg2
 boto3
 python-multipart
+langchain-openai
+pytest
+pytest-asyncio

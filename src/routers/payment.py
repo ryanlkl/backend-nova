@@ -12,6 +12,7 @@ payment_router = APIRouter(prefix="/payment")
 async def list_payments(db: Session = Depends(get_db)):
     """
     Docstring for list_payments
+    Additional filtering and pagination can be added as needed
     """
     return {"message": "List of payments"}
 

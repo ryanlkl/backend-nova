@@ -1,18 +1,28 @@
 """
 Docstring for services.legislation
 """
+from sqlalchemy.orm import Session
+from src.utils.crud import get_with_filters, get_by_id
+from src.models.legislation import Legislation
 
 class LegislationService:
     """
     Docstring for LegislationService
     """
     @staticmethod
-    def get_legislation_info():
+    async def list_legislation(db: Session):
         """
-        Docstring for get_legislation_info
+        Retrieves all legislation entries in the database
         """
-        return {
-            "name": "Data Protection Act",
-            "year": 2018,
-            "description": "An act to make provision for the regulation of the processing of personal data."
-        }
+        legislation = await get_with_filters(Legislation, db, filters={})
+        return legislation
+
+    @staticmethod
+    async def get_legislation_info(legislation_id, db: Session):
+        """
+        Retrieves detailed information about a specific legislation entry
+        :param legislation_id: The ID of the legislation entry
+
+        """
+        legislation = await get_by_id(Legislation, db, legislation_id)
+        return legislation

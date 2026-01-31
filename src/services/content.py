@@ -11,8 +11,7 @@ from src.models.market import Market
 from src.models.legislation import Legislation
 from src.models.insight import Insight
 
-from src.utils.db import get_db
-from src.utils.s3 import upload_to_s3
+from src.utils.s3 import upload_to_s3, delete_from_s3
 from src.schema.content import FilterParams, SortField, SortOrder, ContentType
 
 
@@ -115,11 +114,18 @@ class ContentService:
         }
 
     @staticmethod
-    def get_content(content_id: int):
-        """
-        Docstring for get_content
-        """
-        return {"id": content_id, "title": f"Content Item {content_id}", "details": "Detailed information about the content item."}
+    def get_content(db: Session, content_id: str, content_type: ContentType):
+        # TODO: are we returing a file object at this point or just metadata, i assume metadata
+        model = ContentService.CONTENT_MAP[content_type]["model"]
+        data = db.get(model, content_id)
+
+        if not data:  
+            raise ValueError("Content not found")
+
+        return {
+            "message": "success",
+            "data": data.to_dict(),
+        }
     
     @staticmethod
     async def upload_content( 
@@ -188,11 +194,32 @@ class ContentService:
         }
     
     @staticmethod
-    def delete_content(content_id: int):
+    def delete_content(db: Session, content_id: str, content_type: ContentType):
         """
         Docstring for delete_content
         """
-        return {"message": f"Content with ID {content_id} deleted successfully"}
+        if content_type not in ContentService.CONTENT_MAP:
+            raise ValueError(f"No configuration for content type: {content_type}")
+
+        model = ContentService.CONTENT_MAP[content_type]["model"]
+        bucket = ContentService.CONTENT_MAP[content_type]["bucket"]
+
+        item = db.get(model, content_id)
+        if not item:
+            raise ValueError("Content not found")
+
+        # TODO: Note some records in s3 dont have id persay but use the name so discuss this
+        s3_key = f"{item.id}.{item.file_type}"  
+        try:
+            delete_from_s3(bucket, s3_key)
+        except Exception as e:
+            raise ValueError(f"Failed to delete file from S3: {str(e)}")
+
+        # Delete DB record
+        db.delete(item)
+        db.commit()
+
+        return {"message": f"Content {content_id} deleted successfully from {content_type.value}"}
     
     @staticmethod
     def download_content(content_id: int):

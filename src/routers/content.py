@@ -1,7 +1,7 @@
 """
 Docstring for routers.content
 """
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from src.schema.content import FilterParams, ContentType
@@ -68,26 +68,20 @@ async def list_content(
         ) from e
 
     
+@content_router.get("/item/{content_id}")
+async def get_content(
+    content_id: str,
+    content_type: ContentType = Query(...),  
+    db: Session = Depends(get_db),
+):
+    try:
+        return ContentService.get_content(db, content_id, content_type)
 
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
 
-# @content_router.get("/{content_id}")
-# async def get_content(
-#     content_id: str,
-#     db: Session = Depends(get_db)):
-#     """
-#     Retrieves details of a specific content item by its ID
-    
-#     :type content_id: str
-#     """
-
-#     market_data = db.get(Market, content_id)
-#     if not market_data:
-#         raise HTTPException(status_code=404, detail="Content not found")
-
-#     return {
-#         "message": "success",
-#         "data": market_data.to_dict()
-#     }
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail="Database error") from e
 
 @content_router.post("/")
 async def upload_market(
@@ -113,11 +107,23 @@ async def upload_market(
         raise HTTPException(status_code=500, detail="Database error") from e
    
 
-@content_router.delete("/{content_id}")
-async def delete_content(content_id: str):
+@content_router.delete("/item/{content_id}")
+async def delete_content(
+    content_id: str,
+    content_type: ContentType = Query(...),
+    db: Session = Depends(get_db),
+    ):
     """
     Deletes a specific content item by its ID
     
     :type content_id: str
     """
-    return {"message": f"Content {content_id} deleted"}
+    # TODO: if we delete are we deleting from s3 and chroma
+    try:
+        return ContentService.delete_content(db, content_id, content_type)
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail="Database error") from e

@@ -24,7 +24,7 @@ async def list_market_items(db: Session = Depends(get_db)):
         500 error if database query fails
     """
     try:
-        markets = MarketService.list_market_items(db)
+        markets = await MarketService.list_market_items(db)
         return {"data": markets, "count": len(markets)}
 
     except SQLAlchemyError as e:
@@ -66,25 +66,12 @@ async def get_market_item(item_id: str, bucket: str = Query(...)):
         )
 
     try:
-        market = MarketService.get_market_item_by_id(db, item_id)
-
-        if not market:
-            raise HTTPException(
-                status_code=404,
-                detail=f"Market item with ID '{item_id}' not found"
-            )
-
+        market = MarketService.get_market_object(item_id, bucket)
         return {"data": market}
 
     except HTTPException:
         # Re-raise HTTP exceptions (like 404) without wrapping them
         raise
-
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve market item from database"
-        ) from e
 
     except Exception as e:
         raise HTTPException(

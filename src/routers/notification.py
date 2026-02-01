@@ -2,7 +2,6 @@
 Docstring for routers.notification
 """
 from fastapi import APIRouter
-
 notif_router = APIRouter(prefix="/notification")
 
 @notif_router.get("/")

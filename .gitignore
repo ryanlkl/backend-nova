@@ -213,3 +213,5 @@ my-chroma-data/
 
 
 *.sh
+*.rest
+*.pdf

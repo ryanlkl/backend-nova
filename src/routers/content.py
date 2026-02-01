@@ -1,49 +1,129 @@
 """
 Docstring for routers.content
 """
-from fastapi import APIRouter
-from src.schema.content import ContentRequestSchema
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, Query
+from sqlalchemy.orm import Session
+from sqlalchemy.exc import SQLAlchemyError
+from src.schema.content import FilterParams, ContentType
+
+
+from src.utils.db import get_db
+from typing import Annotated
+from src.services.content import ContentService
 
 content_router = APIRouter(prefix="/content")
 
+
 @content_router.get("/")
-async def list_content():
+async def list_content(
+    filter_query: FilterParams = Depends(FilterParams),
+    db: Session = Depends(get_db)
+):
     """
-    Lists all content stored in sql db e.g. market trends, legislation, insights
-    Additional filtering and pagination can be added as needed
+    Paginate and sort Market records
     """
-    return {"message": "List of content"}
-
-@content_router.get("/{content_id}")
-async def get_content(content_id: str):
-    """
-    Retrieves details of a specific content item by its ID
+    try:
+        response = ContentService.list_all_content(db, filter_query)
+        return response
     
-    :type content_id: str
-    """
-    return {"message": f"Details of content {content_id}"}
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve content from database"
+        ) from e
 
-@content_router.get("/{content_id}/download")
-async def download_content(content_id: str):
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred"
+        ) from e
+
+
+
+@content_router.get("/{content_type}")
+async def list_content(
+    content_type: ContentType,
+    filter_query: FilterParams = Depends(FilterParams),
+    db: Session = Depends(get_db)
+):
     """
-    Downloads a specific content item by its ID
+    Paginate and sort Market records
+    """
+    filter_query = filter_query.model_copy(update={"content_type": content_type})
     
-    :type content_id: str
-    """
-    return {"message": f"Content {content_id} downloaded"}
+    try:
+        response = ContentService.list_content(db, filter_query)
+        return response
+    
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve content from database"
+        ) from e
 
-@content_router.post("/") # Include appropriate schema
-async def upload_content(request: ContentRequestSchema):
-    """
-    Uploads new content to the system
-    """
-    return {"message": "Content uploaded"}
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred"
+        ) from e
 
-@content_router.delete("/{content_id}")
-async def delete_content(content_id: str):
+    
+@content_router.get("/item/{content_id}")
+async def get_content(
+    content_id: str,
+    content_type: ContentType = Query(...),  
+    db: Session = Depends(get_db),
+):
+    try:
+        return ContentService.get_content(db, content_id, content_type)
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail="Database error") from e
+
+@content_router.post("/")
+async def upload_market(
+    content_type: Annotated[ContentType, Form()],
+    title: Annotated[str, Form()],
+    description: Annotated[str, Form()],
+    file: Annotated[UploadFile, File(description="content upload")],
+    db: Session = Depends(get_db)
+    ):
+    try:
+        return await ContentService.upload_content(
+            db=db,
+            title=title,
+            description=description,
+            file=file,
+            content_type = content_type,
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail="Database error") from e
+   
+
+@content_router.delete("/item/{content_id}")
+async def delete_content(
+    content_id: str,
+    content_type: ContentType = Query(...),
+    db: Session = Depends(get_db),
+    ):
     """
     Deletes a specific content item by its ID
     
     :type content_id: str
     """
-    return {"message": f"Content {content_id} deleted"}
+    # TODO: if we delete are we deleting from s3 and chroma
+    try:
+        return ContentService.delete_content(db, content_id, content_type)
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail="Database error") from e

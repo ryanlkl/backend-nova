@@ -1,7 +1,7 @@
 """
 Docstring for utils.embeddings
 """
-from sentence_transformers import SentenceTransformer
+# from sentence_transformers import SentenceTransformer
 from pypdf import PdfReader
 from docx import Document
 from io import BytesIO
@@ -85,33 +85,12 @@ def get_collection(name: str):
     return chroma_client.get_or_create_collection(name=name)
 
 def delete_from_vector_db(content_id: str, content_type: ContentType):
-    collection = get_collection("test_collection") # content_type.value
+    collection = get_collection(content_type.value) # content_type.value
 
     collection.delete(
         where={"content_id": content_id}
     )
 
-# def index_document(
-#     collection_name: str,
-#     content_id: str,
-#     file_ext: str,
-#     file_bytes: bytes,
-# ):
-#     # extract data, chunk it, then embeed, then store in chromadb
-#     text = extract_text(file_bytes, file_ext)
-#     chunks = chunk_text(text)
-#     embeddings = embedding_model.encode(chunks, batch_size=32, show_progress_bar=False)
-#     collection = get_collection("test_collection")
-    
-#     collection.add(
-#         ids=[f"{content_id}_{i}" for i in range(len(chunks))],
-#         documents=chunks,
-#         embeddings=embeddings.tolist(),
-#         metadatas=[
-#             {"content_id": content_id, "chunk_index": i, "collection": collection_name}
-#             for i in range(len(chunks))
-#         ],
-#     )
 
 
 def index_document(

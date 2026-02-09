@@ -131,3 +131,26 @@ async def delete_content(
 
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail="Database error") from e
+    
+
+@content_router.get("/item/{content_id}/download")
+def download_content(
+    content_id: str,
+    content_type: ContentType = Query(...),
+    db: Session = Depends(get_db),
+):
+    """
+    Downloads a content item file
+    """
+    try:
+        return ContentService.download_content(
+            db=db,
+            content_id=content_id,
+            content_type=content_type,
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail="Database error") from e

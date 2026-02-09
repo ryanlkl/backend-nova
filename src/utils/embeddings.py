@@ -9,10 +9,12 @@ import csv
 import pandas as pd
 from pptx import Presentation
 import tiktoken
-from utils.chroma import chroma_client
+from src.utils.chroma import chroma_client
+from datetime import datetime
+from src.schema.content import ContentType
 
 # embedding model
-embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
+# embedding_model = SentenceTransformer("all-MiniLM-L6-v2")
 
 # --- Extract text from content uploads ---
 def extract_pdf_text(file_bytes: bytes) -> str:
@@ -62,8 +64,8 @@ def extract_text(file_bytes: bytes, file_ext: str) -> str:
 # chunking the text
 def chunk_text(
     text: str,
-    chunk_size: int = 500,
-    chunk_overlap: int = 100,
+    chunk_size: int = 1000,
+    chunk_overlap: int = 200,
     model: str = "gpt-4",
 ):
     encoding = tiktoken.encoding_for_model(model)
@@ -82,27 +84,71 @@ def chunk_text(
 def get_collection(name: str):
     return chroma_client.get_or_create_collection(name=name)
 
+def delete_from_vector_db(content_id: str, content_type: ContentType):
+    collection = get_collection("test_collection") # content_type.value
+
+    collection.delete(
+        where={"content_id": content_id}
+    )
+
+# def index_document(
+#     collection_name: str,
+#     content_id: str,
+#     file_ext: str,
+#     file_bytes: bytes,
+# ):
+#     # extract data, chunk it, then embeed, then store in chromadb
+#     text = extract_text(file_bytes, file_ext)
+#     chunks = chunk_text(text)
+#     embeddings = embedding_model.encode(chunks, batch_size=32, show_progress_bar=False)
+#     collection = get_collection("test_collection")
+    
+#     collection.add(
+#         ids=[f"{content_id}_{i}" for i in range(len(chunks))],
+#         documents=chunks,
+#         embeddings=embeddings.tolist(),
+#         metadatas=[
+#             {"content_id": content_id, "chunk_index": i, "collection": collection_name}
+#             for i in range(len(chunks))
+#         ],
+#     )
+
+
 def index_document(
     collection_name: str,
     content_id: str,
     file_ext: str,
     file_bytes: bytes,
+    source: str | None = None,
+    title: str | None = None,
 ):
-    # extract data, chunk it, then embeed, then store in chromadb
     text = extract_text(file_bytes, file_ext)
-    chunks = chunk_text(text)
-    embeddings = embedding_model.encode(chunks, batch_size=32, show_progress_bar=False)
+    chunks = chunk_text(text, chunk_size=1000, chunk_overlap=200)
+
+    if not chunks:
+        return
+
+    documents = []
+    metadatas = []
+    ids = []
+
+    for i, chunk in enumerate(chunks):
+        documents.append(chunk)
+        metadatas.append({
+            "content_id": content_id,
+            "chunk_index": i,
+            "source": source,
+            "title": title,
+            "indexed_at": datetime.utcnow().isoformat(),
+        })
+        ids.append(f"{content_id}:chunk:{i}")
+
     collection = get_collection(collection_name)
-    
-    collection.add(
-        ids=[f"{content_id}_{i}" for i in range(len(chunks))],
-        documents=chunks,
-        embeddings=embeddings.tolist(),
-        metadatas=[
-            {"content_id": content_id, "chunk_index": i, "collection": collection_name}
-            for i in range(len(chunks))
-        ],
+
+    collection.upsert(
+        documents=documents,
+        metadatas=metadatas,
+        ids=ids,
     )
-
-
     # make test collection tomorrow before merging with existing collection
+    # chhaange from test collection to real collection

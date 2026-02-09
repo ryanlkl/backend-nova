@@ -1,7 +1,7 @@
 """
 Docstring for routers.content
 """
-from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, Query
+from fastapi import APIRouter, UploadFile, File, Form, Depends, HTTPException, Query, BackgroundTasks
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import SQLAlchemyError
 from src.schema.content import FilterParams, ContentType
@@ -89,6 +89,7 @@ async def upload_market(
     title: Annotated[str, Form()],
     description: Annotated[str, Form()],
     file: Annotated[UploadFile, File(description="content upload")],
+    background_tasks:BackgroundTasks,
     db: Session = Depends(get_db)
     ):
     try:
@@ -98,6 +99,7 @@ async def upload_market(
             description=description,
             file=file,
             content_type = content_type,
+            background_tasks=background_tasks
         )
 
     except ValueError as e:
@@ -110,8 +112,10 @@ async def upload_market(
 @content_router.delete("/item/{content_id}")
 async def delete_content(
     content_id: str,
+    background_tasks : BackgroundTasks,
     content_type: ContentType = Query(...),
     db: Session = Depends(get_db),
+    
     ):
     """
     Deletes a specific content item by its ID
@@ -120,7 +124,7 @@ async def delete_content(
     """
     # TODO: if we delete are we deleting from s3 and chroma
     try:
-        return ContentService.delete_content(db, content_id, content_type)
+        return ContentService.delete_content(db=db, content_id=content_id, content_type=content_type, background_tasks=background_tasks)
 
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))

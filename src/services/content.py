@@ -3,17 +3,17 @@ Docstring for services.content
 """
 import uuid
 from datetime import datetime, timezone
-from fastapi import  UploadFile
+from fastapi import  UploadFile, BackgroundTasks, Response
 
 from sqlalchemy.orm import Session
 from sqlalchemy import asc, desc
 from src.models.market import Market
 from src.models.legislation import Legislation
 from src.models.insight import Insight
-
-from src.utils.s3 import upload_to_s3, delete_from_s3
 from src.schema.content import FilterParams, SortField, SortOrder, ContentType
 
+from src.utils.embeddings import index_document, delete_from_vector_db
+from src.utils.s3 import upload_to_s3, delete_from_s3, download_from_s3
 
 class ContentService:
     """
@@ -32,6 +32,21 @@ class ContentService:
 
     @staticmethod
     def list_content(db: Session, filters: FilterParams, apply_inner_sort: bool = True):
+        """
+        Docstring for list_content
+        
+        :param db: Description
+        :type db: Session
+        :param filters: Description
+        :type filters: FilterParams
+        :param apply_inner_sort: Description
+        :type apply_inner_sort: bool
+
+
+        This function fetches all data from market, insight, legislation database and returns it in a sorted.
+        The assumption here being that this function is used to list all documents in the content store, so we wouldnt need to render
+        the s3 objects.
+        """
         
         # match to table we are fetching data from
         content_map = {
@@ -76,6 +91,18 @@ class ContentService:
     
     @staticmethod
     def list_all_content(db: Session, filters: FilterParams):
+        """
+        Docstring for list_all_content
+        
+        :param db: Description
+        :type db: Session
+        :param filters: Description
+        :type filters: FilterParams
+        
+        This function wraps around list_content and is used to provide pagination functionality, and applies optional sorting
+        at the global scope for all content types.
+        
+        """
 
         aggregated_data = []
         total = 0
@@ -115,6 +142,18 @@ class ContentService:
 
     @staticmethod
     def get_content(db: Session, content_id: str, content_type: ContentType):
+        """
+        Docstring for get_content
+        
+        :param db: Description
+        :type db: Session
+        :param content_id: Description
+        :type content_id: str
+        :param content_type: Description
+        :type content_type: ContentType
+        
+        get a specific content object
+        """
         # TODO: are we returing a file object at this point or just metadata, i assume metadata
         model = ContentService.CONTENT_MAP[content_type]["model"]
         data = db.get(model, content_id)
@@ -128,18 +167,16 @@ class ContentService:
         }
     
     @staticmethod
-    async def upload_content( 
+    async def upload_content(
         content_type: ContentType,
-        db: Session, 
+        db: Session,
         title: str,
         description: str,
         file: UploadFile,
+        background_tasks: BackgroundTasks,
     ):
-        """
-        Docstring for upload_content
-        """
         if content_type not in ContentService.CONTENT_MAP:
-            raise ValueError(f"Unsupported content type: {content_type}")
+            raise ValueError("Unsupported content type")
 
         model = ContentService.CONTENT_MAP[content_type]["model"]
         bucket = ContentService.CONTENT_MAP[content_type]["bucket"]
@@ -147,26 +184,22 @@ class ContentService:
         ALLOWED_EXTENSIONS = {"pdf", "docx", "csv", "xlsx", "pptx"}
         MAX_FILE_SIZE = 10 * 1024 * 1024
 
-        file_extension = file.filename.split(".")[-1].lower()
-        if file_extension not in ALLOWED_EXTENSIONS:
-            raise ValueError(
-                f"Invalid file type: {file_extension}. Allowed types: {', '.join(ALLOWED_EXTENSIONS)}"
-            )
+        file_ext = file.filename.split(".")[-1].lower()
+        if file_ext not in ALLOWED_EXTENSIONS:
+            raise ValueError(f"Invalid file type: {file_ext}")
 
-        contents = await file.read()
-        if len(contents) > MAX_FILE_SIZE:
-            raise ValueError("File too large (max 10MB)")
-
-        file.file.seek(0)
+        file_bytes = await file.read()
+        if len(file_bytes) > MAX_FILE_SIZE:
+            raise ValueError("File too large")
 
         entry = model(
             id=uuid.uuid4(),
             title=title,
             description=description,
             source="user",
-            file_type=file_extension,
-            created_at = datetime.now(timezone.utc).isoformat(),
-            updated_at = datetime.now(timezone.utc).isoformat()
+            file_type=file_ext,
+            created_at=datetime.now(timezone.utc).isoformat(),
+            updated_at=datetime.now(timezone.utc).isoformat(),
         )
 
         try:
@@ -174,12 +207,16 @@ class ContentService:
             db.commit()
             db.refresh(entry)
 
-            # Upload file to respective S3 bucket
-            upload_to_s3(
-                contents,
-                file_extension,
-                bucket,
-                f"{entry.id}.{file_extension}",
+            # upload raw file
+            upload_to_s3(file_bytes, file_ext, bucket, f"{entry.id}.{file_ext}")
+
+            # background vector indexing
+            background_tasks.add_task(
+                index_document,
+                content_type.value,  # collection name
+                str(entry.id),
+                file_ext,
+                file_bytes,
             )
 
         except Exception:
@@ -187,14 +224,18 @@ class ContentService:
             raise
 
         return {
-            "message": f"{content_type.value.capitalize()} data uploaded successfully",
+            "message": "Upload successful",
             "id": str(entry.id),
-            "file_type": file_extension,
-            "file_size_bytes": len(contents),
+            "file_size": len(file_bytes),
         }
     
     @staticmethod
-    def delete_content(db: Session, content_id: str, content_type: ContentType):
+    def delete_content(
+        db: Session,
+        content_id: str,
+        content_type: ContentType,
+        background_tasks: BackgroundTasks
+        ):
         """
         Docstring for delete_content
         """
@@ -215,15 +256,53 @@ class ContentService:
         except Exception as e:
             raise ValueError(f"Failed to delete file from S3: {str(e)}")
 
-        # Delete DB record
+        # --- Delete DB record ---
         db.delete(item)
         db.commit()
 
+        # --- Delete from Chroma ---
+        background_tasks.add_task(
+            delete_from_vector_db,
+            content_id=content_id,
+            content_type=content_type,
+        )
+
         return {"message": f"Content {content_id} deleted successfully from {content_type.value}"}
     
+
     @staticmethod
-    def download_content(content_id: int):
+    def download_content(
+        db: Session,
+        content_id: str,
+        content_type: ContentType,
+    ):
         """
-        Docstring for download_content
+        Download content file based on content domain (market, legislation, etc.)
         """
-        return {"message": f"Content with ID {content_id} downloaded successfully"}
+
+        if content_type not in ContentService.CONTENT_MAP:
+            raise ValueError(f"No configuration for content type: {content_type}")
+
+        config = ContentService.CONTENT_MAP[content_type]
+        model = config["model"]
+        bucket = config["bucket"]
+
+        item = db.get(model, content_id)
+        if not item:
+            raise ValueError("Content not found")
+
+        s3_key = f"{item.id}.{item.file_type}"
+        file_bytes = download_from_s3(bucket, s3_key)
+        if file_bytes is None:
+            raise ValueError("Failed to download file from S3")
+
+        filename = f"{item.title or item.id}.{item.file_type}"
+        media_type = item.file_type or "application/octet-stream"
+
+        return Response(
+            content=file_bytes,
+            media_type=media_type,
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"'
+            },
+        )

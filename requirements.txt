@@ -11,3 +11,9 @@ python-multipart
 langchain-openai
 pytest
 pytest-asyncio
+pypdf 
+python-docx 
+pandas 
+openpyxl 
+python-pptx 
+tiktoken

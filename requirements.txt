@@ -11,6 +11,8 @@ python-multipart
 langchain-openai
 pytest
 pytest-asyncio
+httpx
+apscheduler
 pypdf 
 python-docx 
 pandas 

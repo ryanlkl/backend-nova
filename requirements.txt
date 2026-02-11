@@ -11,3 +11,5 @@ python-multipart
 langchain-openai
 pytest
 pytest-asyncio
+httpx
+apscheduler

@@ -157,6 +157,302 @@ You can also trigger a refresh manually via the `/payment/refresh` endpoint. Thi
 
 ---
 
+## Frontend Data Handling
+
+This section explains how to interpret, destructure, and handle the API responses in your frontend application.
+
+### TypeScript Interfaces
+
+Define these types to match the API responses:
+
+```typescript
+// Trend direction enum
+type TrendDirection = 'up' | 'down' | 'stable';
+
+// Individual stat item (used in /stats response)
+interface StatItem {
+  value: string;        // Formatted display value, e.g. "£476.2B"
+  raw_value: number;    // Raw numeric value for calculations
+  change: number;       // Percentage change, e.g. 2.5 or -3.2
+  trend: TrendDirection;
+  period: string;       // Always "vs last month"
+}
+
+// GET /payment/stats response
+interface PaymentStatsResponse {
+  total_consumer_credit: StatItem | null;
+  credit_card_lending: StatItem | null;
+  mortgage_approvals: StatItem | null;
+  bank_rate: StatItem | null;
+  last_updated: string | null;  // ISO datetime string
+}
+
+// Payment method for pie chart
+interface PaymentMethod {
+  name: string;
+  percentage: number;
+  color: string;  // Hex color for chart
+}
+
+// GET /payment/payment-methods response
+interface PaymentMethodsResponse {
+  methods: PaymentMethod[];
+  source: string;
+  last_updated: string;
+}
+
+// Alert for significant changes
+interface TrendAlert {
+  metric: string;
+  change: number;
+  direction: TrendDirection;
+  message: string;
+}
+
+// GET /payment/trend-alerts response
+interface TrendAlertsResponse {
+  alerts: TrendAlert[];
+  last_updated: string | null;
+}
+
+// POST /payment/refresh response
+interface RefreshResponse {
+  success: boolean;
+  records_saved?: number;
+  message?: string;
+  error?: string;
+}
+```
+
+### Fetching Data
+
+```typescript
+const API_BASE = 'http://localhost:8000/api/v1';
+
+// Fetch payment stats
+async function fetchPaymentStats(): Promise<PaymentStatsResponse> {
+  const response = await fetch(`${API_BASE}/payment/stats`);
+  if (!response.ok) throw new Error('Failed to fetch stats');
+  return response.json();
+}
+
+// Fetch payment methods
+async function fetchPaymentMethods(): Promise<PaymentMethodsResponse> {
+  const response = await fetch(`${API_BASE}/payment/payment-methods`);
+  if (!response.ok) throw new Error('Failed to fetch payment methods');
+  return response.json();
+}
+
+// Fetch trend alerts
+async function fetchTrendAlerts(): Promise<TrendAlertsResponse> {
+  const response = await fetch(`${API_BASE}/payment/trend-alerts`);
+  if (!response.ok) throw new Error('Failed to fetch trend alerts');
+  return response.json();
+}
+
+// Trigger manual refresh
+async function refreshData(): Promise<RefreshResponse> {
+  const response = await fetch(`${API_BASE}/payment/refresh`, {
+    method: 'POST'
+  });
+  return response.json();
+}
+```
+
+### Destructuring Responses
+
+#### Stats Response
+
+```typescript
+// Fetch and destructure stats
+const stats = await fetchPaymentStats();
+
+// Destructure individual metrics (may be null if no data)
+const {
+  total_consumer_credit,
+  credit_card_lending,
+  mortgage_approvals,
+  bank_rate,
+  last_updated
+} = stats;
+
+// Use with null checks
+if (total_consumer_credit) {
+  console.log(total_consumer_credit.value);    // "£476.2B"
+  console.log(total_consumer_credit.change);   // 2.5
+  console.log(total_consumer_credit.trend);    // "up"
+}
+
+// Convert to array for mapping (useful for rendering cards)
+const statItems = [
+  { key: 'consumer_credit', label: 'Consumer Credit', data: total_consumer_credit },
+  { key: 'credit_cards', label: 'Credit Card Lending', data: credit_card_lending },
+  { key: 'mortgages', label: 'Mortgage Approvals', data: mortgage_approvals },
+  { key: 'bank_rate', label: 'Bank Rate', data: bank_rate },
+].filter(item => item.data !== null);
+```
+
+#### Payment Methods Response
+
+```typescript
+const { methods, source, last_updated } = await fetchPaymentMethods();
+
+// Ready for chart libraries - already has labels, values, and colors
+const chartData = {
+  labels: methods.map(m => m.name),
+  datasets: [{
+    data: methods.map(m => m.percentage),
+    backgroundColor: methods.map(m => m.color),
+  }]
+};
+```
+
+#### Trend Alerts Response
+
+```typescript
+const { alerts, last_updated } = await fetchTrendAlerts();
+
+// Filter by direction if needed
+const increasingTrends = alerts.filter(a => a.direction === 'up');
+const decreasingTrends = alerts.filter(a => a.direction === 'down');
+
+// Sort by largest change
+const sortedAlerts = [...alerts].sort((a, b) => b.change - a.change);
+```
+
+### React Component Example
+
+```tsx
+import { useState, useEffect } from 'react';
+
+function StatCard({ label, data }: { label: string; data: StatItem | null }) {
+  if (!data) return <div className="stat-card loading">No data</div>;
+
+  const trendColor = {
+    up: 'text-green-500',
+    down: 'text-red-500',
+    stable: 'text-gray-500'
+  }[data.trend];
+
+  const trendIcon = {
+    up: '↑',
+    down: '↓',
+    stable: '—'
+  }[data.trend];
+
+  return (
+    <div className="stat-card">
+      <h3 className="text-sm text-gray-500">{label}</h3>
+      <p className="text-2xl font-bold">{data.value}</p>
+      <p className={`text-sm ${trendColor}`}>
+        {trendIcon} {data.change > 0 ? '+' : ''}{data.change}% {data.period}
+      </p>
+    </div>
+  );
+}
+
+function PaymentDashboard() {
+  const [stats, setStats] = useState<PaymentStatsResponse | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetchPaymentStats()
+      .then(setStats)
+      .catch(err => setError(err.message))
+      .finally(() => setLoading(false));
+  }, []);
+
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+  if (!stats) return <div>No data available</div>;
+
+  return (
+    <div className="grid grid-cols-4 gap-4">
+      <StatCard label="Consumer Credit" data={stats.total_consumer_credit} />
+      <StatCard label="Credit Cards" data={stats.credit_card_lending} />
+      <StatCard label="Mortgages" data={stats.mortgage_approvals} />
+      <StatCard label="Bank Rate" data={stats.bank_rate} />
+    </div>
+  );
+}
+```
+
+### Handling Edge Cases
+
+```typescript
+// 1. Null stat items (no data in database)
+const value = stats.total_consumer_credit?.value ?? 'N/A';
+
+// 2. Format the last_updated date
+function formatLastUpdated(isoString: string | null): string {
+  if (!isoString) return 'Never';
+  const date = new Date(isoString);
+  return date.toLocaleDateString('en-GB', {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit'
+  });
+}
+
+// 3. Determine if data is stale (older than 24 hours)
+function isDataStale(lastUpdated: string | null): boolean {
+  if (!lastUpdated) return true;
+  const updateTime = new Date(lastUpdated).getTime();
+  const now = Date.now();
+  const hoursSinceUpdate = (now - updateTime) / (1000 * 60 * 60);
+  return hoursSinceUpdate > 24;
+}
+
+// 4. Show warning if stale
+if (isDataStale(stats.last_updated)) {
+  console.warn('Payment data may be outdated');
+}
+
+// 5. Handle empty alerts array
+const hasAlerts = alerts.length > 0;
+// Show "All metrics stable" message when no alerts
+```
+
+### Data Refresh Pattern
+
+```typescript
+function usePaymentData() {
+  const [stats, setStats] = useState<PaymentStatsResponse | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  const loadStats = async () => {
+    const data = await fetchPaymentStats();
+    setStats(data);
+  };
+
+  const handleRefresh = async () => {
+    setRefreshing(true);
+    try {
+      const result = await refreshData();
+      if (result.success) {
+        // Reload stats after successful refresh
+        await loadStats();
+      } else {
+        throw new Error(result.error);
+      }
+    } catch (err) {
+      console.error('Refresh failed:', err);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
+  useEffect(() => { loadStats(); }, []);
+
+  return { stats, refreshing, handleRefresh };
+}
+```
+
+---
+
 ## Frontend Recommendations
 
 ### Dashboard Layout

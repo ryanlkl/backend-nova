@@ -13,3 +13,9 @@ pytest
 pytest-asyncio
 httpx
 apscheduler
+pypdf 
+python-docx 
+pandas 
+openpyxl 
+python-pptx 
+tiktoken

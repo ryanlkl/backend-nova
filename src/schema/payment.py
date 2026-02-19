@@ -53,29 +53,7 @@ class MarketPulseStatsResponse(BaseModel):
 
 
 # ============================================
-# Response models for /market-pulse/payment-methods
-# ============================================
-
-class PaymentMethod(BaseModel):
-    """
-    One slice of the payment methods pie chart.
-    
-    Example: {"name": "Cards", "percentage": 45, "color": "#3B82F6"}
-    """
-    name: str
-    percentage: float
-    color: Optional[str] = None  # Hex color for the chart
-
-
-class PaymentMethodsResponse(BaseModel):
-    """List of payment methods with their market share"""
-    methods: List[PaymentMethod]
-    source: str = "UK Finance"  # Where this data comes from
-    last_updated: Optional[str] = None
-
-
-# ============================================
-# Response models for /market-pulse/trend-alerts
+# Response models for /trend-alerts
 # ============================================
 
 class TrendAlert(BaseModel):
@@ -94,3 +72,29 @@ class TrendAlertsResponse(BaseModel):
     """List of notable trends to highlight"""
     alerts: List[TrendAlert]
     last_updated: Optional[str] = None
+
+
+# ============================================
+# Response models for /history (charts)
+# ============================================
+
+class HistoryDataPoint(BaseModel):
+    """Single data point for a time series chart"""
+    date: str  # YYYY-MM-DD format
+    value: float
+
+
+class MetricHistory(BaseModel):
+    """Historical data for one metric"""
+    metric_name: str
+    unit: str  # "millions_gbp", "percent", "thousands"
+    data: List[HistoryDataPoint]
+
+
+class HistoryResponse(BaseModel):
+    """Historical data for all metrics - for charts"""
+    total_consumer_credit: Optional[MetricHistory] = None
+    credit_card_lending: Optional[MetricHistory] = None
+    mortgage_approvals: Optional[MetricHistory] = None
+    bank_rate: Optional[MetricHistory] = None
+    months_included: int

@@ -5,7 +5,6 @@ API endpoints for UK payment statistics from the Bank of England.
 
 Endpoints:
 - GET /payment/stats - Main dashboard stats (consumer credit, mortgages, etc.)
-- GET /payment/payment-methods - Payment method breakdown
 - GET /payment/trend-alerts - Notable trends
 - POST /payment/refresh - Manually trigger data refresh from BoE
 """
@@ -13,10 +12,11 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from src.utils.db import get_db
 from src.services.payment import PaymentService
+from typing import Optional
 from src.schema.payment import (
     MarketPulseStatsResponse,
-    PaymentMethodsResponse,
-    TrendAlertsResponse
+    TrendAlertsResponse,
+    HistoryResponse
 )
 
 payment_router = APIRouter(prefix="/payment")
@@ -38,17 +38,21 @@ async def get_stats(db: Session = Depends(get_db)):
     return await PaymentService.get_market_pulse_stats(db)
 
 
-@payment_router.get("/payment-methods", response_model=PaymentMethodsResponse)
-async def get_payment_methods():
+@payment_router.get("/history", response_model=HistoryResponse)
+async def get_history(db: Session = Depends(get_db), months: Optional[int] = 24):
     """
-    Get payment method market share breakdown.
+    Get historical data for all metrics - for line/area charts.
     
-    Returns percentage breakdown of payment methods in the UK:
-    - Debit Cards, Credit Cards, Faster Payments, Direct Debit, Cash, Other
+    Query Parameters:
+    - months: Number of months of history (default 24, max 24)
     
-    Note: This is manually updated data from UK Finance reports.
+    Returns time series data for:
+    - Total consumer credit
+    - Credit card lending  
+    - Mortgage approvals
+    - Bank rate
     """
-    return await PaymentService.get_payment_methods()
+    return await PaymentService.get_history(db, min(months, 24))
 
 
 @payment_router.get("/trend-alerts", response_model=TrendAlertsResponse)

@@ -53,8 +53,10 @@ Fetches UK payment statistics from the Bank of England API.
 #### GET /stats
 Returns main dashboard statistics (consumer credit, credit cards, mortgages, bank rate) with month-over-month changes.
 
-#### GET /payment-methods
-Returns UK payment method market share breakdown (debit cards, credit cards, etc.)
+#### GET /history
+Returns 24 months of historical data for all metrics - use for line/area charts showing trends over time.
+
+Query params: `?months=12` (default 24, max 24)
 
 #### GET /trend-alerts
 Returns alerts for metrics with significant changes (>5%)

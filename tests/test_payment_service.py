@@ -220,31 +220,6 @@ class TestStatCalculations:
         assert "5.25" in stat.value
 
 
-class TestPaymentMethods:
-    """Test payment methods endpoint."""
-    
-    @pytest.mark.asyncio
-    async def test_get_payment_methods(self):
-        """Test payment methods returns all methods."""
-        result = await PaymentService.get_payment_methods()
-        
-        assert result.methods is not None
-        assert len(result.methods) == 6  # Debit, Credit, Faster, Direct, Cash, Other
-        
-        # Check percentages sum to 100
-        total = sum(m.percentage for m in result.methods)
-        assert total == 100
-    
-    @pytest.mark.asyncio
-    async def test_payment_methods_have_colors(self):
-        """Test each payment method has a color for charts."""
-        result = await PaymentService.get_payment_methods()
-        
-        for method in result.methods:
-            assert method.color is not None
-            assert method.color.startswith("#")
-
-
 class TestTrendAlerts:
     """Test trend alerts generation."""
     

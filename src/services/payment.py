@@ -17,8 +17,6 @@ from src.schema.payment import (
     StatItem, 
     TrendDirection,
     MarketPulseStatsResponse,
-    PaymentMethod,
-    PaymentMethodsResponse,
     TrendAlert,
     TrendAlertsResponse
 )
@@ -339,35 +337,6 @@ class PaymentService:
         )
 
     # ============================================
-    # Payment methods breakdown (manual data)
-    # ============================================
-
-    @staticmethod
-    async def get_payment_methods() -> PaymentMethodsResponse:
-        """
-        Get payment method market share data.
-        
-        Note: This data comes from UK Finance annual reports and is updated
-        manually. The BoE API doesn't provide this breakdown.
-        
-        These are approximate UK payment method percentages for 2025.
-        """
-        methods = [
-            PaymentMethod(name="Debit Cards", percentage=42, color="#3B82F6"),
-            PaymentMethod(name="Credit Cards", percentage=12, color="#8B5CF6"),
-            PaymentMethod(name="Faster Payments", percentage=25, color="#10B981"),
-            PaymentMethod(name="Direct Debit", percentage=11, color="#F59E0B"),
-            PaymentMethod(name="Cash", percentage=6, color="#6B7280"),
-            PaymentMethod(name="Other", percentage=4, color="#EC4899"),
-        ]
-        
-        return PaymentMethodsResponse(
-            methods=methods,
-            source="UK Finance Payments Report 2025",
-            last_updated="2025-06-01"  # Update this when refreshing data
-        )
-
-    # ============================================
     # Trend alerts
     # ============================================
 
@@ -409,6 +378,54 @@ class PaymentService:
         return TrendAlertsResponse(
             alerts=alerts,
             last_updated=latest.updated_at if latest else None
+        )
+
+    # ============================================
+    # Historical data for charts
+    # ============================================
+
+    @staticmethod
+    async def get_history(db: Session, months: int = 24):
+        """
+        Get historical data for all metrics - for frontend charts.
+        
+        Returns time series data ordered chronologically.
+        """
+        from src.schema.payment import HistoryResponse, MetricHistory, HistoryDataPoint
+        
+        result = {}
+        
+        for series_code, info in BOE_SERIES.items():
+            # Get all records for this series, ordered by date
+            records = db.query(PaymentStatistic).filter(
+                PaymentStatistic.series_code == series_code
+            ).order_by(PaymentStatistic.date).limit(months).all()
+            
+            if records:
+                data_points = [
+                    HistoryDataPoint(
+                        date=record.date.strftime("%Y-%m-%d"),
+                        value=record.value
+                    )
+                    for record in records
+                ]
+                
+                metric_history = MetricHistory(
+                    metric_name=info["name"],
+                    unit=info["unit"],
+                    data=data_points
+                )
+                
+                # Map series code to field name
+                field_name = info["name"].lower().replace(" ", "_")
+                result[field_name] = metric_history
+        
+        return HistoryResponse(
+            total_consumer_credit=result.get("total_consumer_credit"),
+            credit_card_lending=result.get("credit_card_lending"),
+            mortgage_approvals=result.get("mortgage_approvals"),
+            bank_rate=result.get("bank_rate"),
+            months_included=months
         )
 
     # ============================================

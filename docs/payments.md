@@ -8,9 +8,10 @@ This document explains how the payment data system works, including data fetchin
 
 The payment system fetches UK financial statistics from the **Bank of England (BoE) API** and stores them in PostgreSQL. The frontend can then display these statistics on a dashboard.
 
-**Data Sources:**
+**Data Source:**
 - Bank of England Statistical Interactive Database (BoE API)
-- UK Finance Reports (manual data for payment method breakdown)
+
+> **Note:** All data comes directly from the BoE API. There is no hardcoded or manually maintained data.
 
 ---
 
@@ -32,6 +33,8 @@ The payment system fetches UK financial statistics from the **Bank of England (B
 ### GET `/stats`
 Returns the main dashboard statistics with current values and month-over-month changes.
 
+**All data is fetched from the Bank of England API and stored in the database. The `change` field is calculated from real historical data.**
+
 **Response:**
 ```json
 {
@@ -46,25 +49,6 @@ Returns the main dashboard statistics with current values and month-over-month c
   "mortgage_approvals": { ... },
   "bank_rate": { ... },
   "last_updated": "2024-02-29T12:00:00"
-}
-```
-
-### GET `/payment-methods`
-Returns UK payment method market share breakdown.
-
-**Response:**
-```json
-{
-  "methods": [
-    { "name": "Debit Cards", "percentage": 42, "color": "#3B82F6" },
-    { "name": "Credit Cards", "percentage": 12, "color": "#8B5CF6" },
-    { "name": "Faster Payments", "percentage": 25, "color": "#10B981" },
-    { "name": "Direct Debit", "percentage": 11, "color": "#F59E0B" },
-    { "name": "Cash", "percentage": 6, "color": "#6B7280" },
-    { "name": "Other", "percentage": 4, "color": "#EC4899" }
-  ],
-  "source": "UK Finance Payments Report 2025",
-  "last_updated": "2025-06-01"
 }
 ```
 
@@ -187,20 +171,6 @@ interface PaymentStatsResponse {
   last_updated: string | null;  // ISO datetime string
 }
 
-// Payment method for pie chart
-interface PaymentMethod {
-  name: string;
-  percentage: number;
-  color: string;  // Hex color for chart
-}
-
-// GET /payment/payment-methods response
-interface PaymentMethodsResponse {
-  methods: PaymentMethod[];
-  source: string;
-  last_updated: string;
-}
-
 // Alert for significant changes
 interface TrendAlert {
   metric: string;
@@ -233,13 +203,6 @@ const API_BASE = 'http://localhost:8000/api/v1';
 async function fetchPaymentStats(): Promise<PaymentStatsResponse> {
   const response = await fetch(`${API_BASE}/payment/stats`);
   if (!response.ok) throw new Error('Failed to fetch stats');
-  return response.json();
-}
-
-// Fetch payment methods
-async function fetchPaymentMethods(): Promise<PaymentMethodsResponse> {
-  const response = await fetch(`${API_BASE}/payment/payment-methods`);
-  if (!response.ok) throw new Error('Failed to fetch payment methods');
   return response.json();
 }
 
@@ -290,21 +253,6 @@ const statItems = [
   { key: 'mortgages', label: 'Mortgage Approvals', data: mortgage_approvals },
   { key: 'bank_rate', label: 'Bank Rate', data: bank_rate },
 ].filter(item => item.data !== null);
-```
-
-#### Payment Methods Response
-
-```typescript
-const { methods, source, last_updated } = await fetchPaymentMethods();
-
-// Ready for chart libraries - already has labels, values, and colors
-const chartData = {
-  labels: methods.map(m => m.name),
-  datasets: [{
-    data: methods.map(m => m.percentage),
-    backgroundColor: methods.map(m => m.color),
-  }]
-};
 ```
 
 #### Trend Alerts Response
@@ -472,15 +420,13 @@ A clean, informative dashboard for UK payment statistics:
 │  │  ↑ +2.5%    │ │  ↑ +1.8%    │ │  ↓ -3.2%    │ │ — 0%   ││
 │  └─────────────┘ └─────────────┘ └─────────────┘ └────────┘│
 │                                                             │
-│  ┌──────────────────────────┐  ┌────────────────────────┐  │
-│  │  Payment Methods         │  │  Trend Alerts          │  │
-│  │  [PIE CHART]             │  │  ⚠️ Credit up 7.2%     │  │
-│  │                          │  │  📉 Mortgages down 5%  │  │
-│  │  42% Debit               │  │                        │  │
-│  │  25% Faster Payments     │  │  Last updated: 6:00 AM │  │
-│  │  12% Credit              │  │                        │  │
-│  │  ...                     │  │                        │  │
-│  └──────────────────────────┘  └────────────────────────┘  │
+│  ┌──────────────────────────────────────────────────────┐  │
+│  │  Trend Alerts                                         │  │
+│  │  ⚠️ Credit Card Lending up 7.2%                       │  │
+│  │  📉 Mortgage Approvals down 5%                        │  │
+│  │                                                        │  │
+│  │  Last updated: 6:00 AM                                │  │
+│  └──────────────────────────────────────────────────────┘  │
 │                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -499,16 +445,7 @@ Display each metric in a card with:
 - Consider context: mortgage approval decline might be neutral, not bad
 - Show the raw trend, let users interpret
 
-#### 2. Payment Methods (Pie/Donut Chart)
-Best displayed as a **donut chart**:
-- Use the colors from the API response
-- Show percentages on hover
-- Include a legend
-- Add source attribution ("Source: UK Finance 2025")
-
-**Libraries:** Chart.js, Recharts, or ApexCharts
-
-#### 3. Trend Alerts Panel
+#### 2. Trend Alerts Panel
 Display as a notification/alert list:
 - Icon based on direction (📈/📉)
 - Metric name and change percentage
@@ -588,7 +525,6 @@ Tests cover:
 - Error page detection
 - Stat calculations (up/down/stable trends)
 - Value formatting (billions, percentages)
-- Payment methods data
 - Trend alerts generation
 
 ---

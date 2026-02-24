@@ -47,7 +47,7 @@ app.include_router(notif_router)
 ## Middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173"],
+    allow_origins=["http://localhost:5173","frontend-nova-rust.vercel.app"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"]

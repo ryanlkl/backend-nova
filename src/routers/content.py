@@ -39,35 +39,6 @@ async def list_content(
         ) from e
 
 
-
-@content_router.get("/{content_type}")
-async def list_content(
-    content_type: ContentType,
-    filter_query: FilterParams = Depends(FilterParams),
-    db: Session = Depends(get_db)
-):
-    """
-    Paginate and sort Market records
-    """
-    filter_query = filter_query.model_copy(update={"content_type": content_type})
-    
-    try:
-        response = ContentService.list_content(db, filter_query)
-        return response
-    
-    except SQLAlchemyError as e:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to retrieve content from database"
-        ) from e
-
-    except Exception as e:
-        raise HTTPException(
-            status_code=500,
-            detail="An unexpected error occurred"
-        ) from e
-
-    
 @content_router.get("/item/{content_id}")
 async def get_content(
     content_id: str,
@@ -83,55 +54,6 @@ async def get_content(
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail="Database error") from e
 
-@content_router.post("/")
-async def upload_market(
-    content_type: Annotated[ContentType, Form()],
-    title: Annotated[str, Form()],
-    description: Annotated[str, Form()],
-    file: Annotated[UploadFile, File(description="content upload")],
-    background_tasks:BackgroundTasks,
-    db: Session = Depends(get_db)
-    ):
-    try:
-        return await ContentService.upload_content(
-            db=db,
-            title=title,
-            description=description,
-            file=file,
-            content_type = content_type,
-            background_tasks=background_tasks
-        )
-
-    except ValueError as e:
-        raise HTTPException(status_code=400, detail=str(e))
-
-    except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail="Database error") from e
-   
-
-@content_router.delete("/item/{content_id}")
-async def delete_content(
-    content_id: str,
-    background_tasks : BackgroundTasks,
-    content_type: ContentType = Query(...),
-    db: Session = Depends(get_db),
-    
-    ):
-    """
-    Deletes a specific content item by its ID
-    
-    :type content_id: str
-    """
-    # TODO: if we delete are we deleting from s3 and chroma
-    try:
-        return ContentService.delete_content(db=db, content_id=content_id, content_type=content_type, background_tasks=background_tasks)
-
-    except ValueError as e:
-        raise HTTPException(status_code=404, detail=str(e))
-
-    except SQLAlchemyError as e:
-        raise HTTPException(status_code=500, detail="Database error") from e
-    
 
 @content_router.get("/item/{content_id}/download")
 def download_content(
@@ -140,7 +62,9 @@ def download_content(
     db: Session = Depends(get_db),
 ):
     """
-    Downloads a content item file
+    Downloads a content item file from S3.
+    Returns 404 if the file is not found in storage.
+    Returns 503 if S3 is unavailable or credentials are invalid.
     """
     try:
         return ContentService.download_content(
@@ -152,5 +76,93 @@ def download_content(
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
 
+    except IOError as e:
+        raise HTTPException(status_code=503, detail=str(e))
+
     except SQLAlchemyError as e:
         raise HTTPException(status_code=500, detail="Database error") from e
+
+
+@content_router.post("/")
+async def upload_content(
+    content_type: Annotated[ContentType, Form()],
+    title: Annotated[str, Form()],
+    description: Annotated[str, Form()] = "",
+    file: Annotated[UploadFile, File(description="content upload")] = ...,
+    background_tasks: BackgroundTasks = ...,
+    db: Session = Depends(get_db)
+    ):
+    try:
+        # Convert empty string to None for database
+        desc = description if description.strip() else None
+        return await ContentService.upload_content(
+            db=db,
+            title=title,
+            description=desc,
+            file=file,
+            content_type=content_type,
+            background_tasks=background_tasks
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail="Database error") from e
+
+
+@content_router.delete("/item/{content_id}")
+async def delete_content(
+    content_id: str,
+    background_tasks: BackgroundTasks,
+    content_type: ContentType = Query(...),
+    db: Session = Depends(get_db),
+    ):
+    """
+    Deletes a specific content item by its ID
+    
+    :type content_id: str
+    """
+    try:
+        return ContentService.delete_content(
+            db=db,
+            content_id=content_id,
+            content_type=content_type,
+            background_tasks=background_tasks
+        )
+
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+    except SQLAlchemyError as e:
+        raise HTTPException(status_code=500, detail="Database error") from e
+
+
+# Wildcard route — must stay LAST so it never shadows /item/... routes above.
+@content_router.get("/{content_type}")
+async def list_content_by_type(
+    content_type: ContentType,
+    filter_query: FilterParams = Depends(FilterParams),
+    db: Session = Depends(get_db)
+):
+    """
+    Paginate and sort records by content type.
+    NOTE: defined LAST so it never shadows /item/... routes.
+    """
+    filter_query = filter_query.model_copy(update={"content_type": content_type})
+
+    try:
+        response = ContentService.list_content(db, filter_query)
+        return response
+
+    except SQLAlchemyError as e:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to retrieve content from database"
+        ) from e
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail="An unexpected error occurred"
+        ) from e

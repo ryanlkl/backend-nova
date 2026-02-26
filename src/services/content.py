@@ -107,20 +107,42 @@ class ContentService:
         aggregated_data = []
         total = 0
 
+        # Fetch all records for each content type without applying per-table pagination.
+        # Pagination is applied only after aggregating and globally sorting the results.
+        content_map = {
+            ContentType.market: Market,
+            ContentType.legislation: Legislation,
+            ContentType.insight: Insight,
+        }
+
+        search_query = filters.search.lower().strip() if filters.search else ""
+
         for content_type in (
             ContentType.market,
-            ContentType.legislation, 
-            ContentType.insight):
+            ContentType.legislation,
+            ContentType.insight,
+        ):
+            table = content_map[content_type]
+            query = db.query(table)
 
-            # specify which table we are fetching data from and sort once for all aggregated records
-            scoped_filters = filters.model_copy(update={"content_type": content_type})
-            result = ContentService.list_content(db, scoped_filters, apply_inner_sort=False)
+            # Collect all rows for this content type
+            table_rows = query.all()
 
-            for item in result["data"]:
+            for row in table_rows:
+                item = row.to_dict()
+                
+                # Apply search filter if provided
+                if search_query:
+                    title = (item.get("title") or "").lower()
+                    description = (item.get("description") or "").lower()
+                    source = (item.get("source") or "").lower()
+                    
+                    if not (search_query in title or search_query in description or search_query in source):
+                        continue
+                
                 item["content_type"] = content_type.value
                 aggregated_data.append(item)
-
-            total += result["total"]
+                total += 1
 
         reverse = filters.order == SortOrder.desc
         aggregated_data.sort(
@@ -171,7 +193,7 @@ class ContentService:
         content_type: ContentType,
         db: Session,
         title: str,
-        description: str,
+        description: str | None,
         file: UploadFile,
         background_tasks: BackgroundTasks,
     ):
@@ -181,7 +203,7 @@ class ContentService:
         model = ContentService.CONTENT_MAP[content_type]["model"]
         bucket = ContentService.CONTENT_MAP[content_type]["bucket"]
 
-        ALLOWED_EXTENSIONS = {"pdf", "docx", "csv", "xlsx", "pptx"}
+        ALLOWED_EXTENSIONS = {"pdf", "docx", "csv", "xlsx", "pptx", "txt"}
         MAX_FILE_SIZE = 10 * 1024 * 1024
 
         file_ext = file.filename.split(".")[-1].lower()
@@ -203,9 +225,12 @@ class ContentService:
         )
 
         try:
+            print(f"Creating DB entry for content with title: {title} and ID: {entry.id}")
             db.add(entry)
             db.commit()
             db.refresh(entry)
+
+            print(f"Created DB entry with ID: {entry.id}")
 
             # upload raw file
             upload_to_s3(file_bytes, file_ext, bucket, f"{entry.id}.{file_ext}")
@@ -292,9 +317,12 @@ class ContentService:
             raise ValueError("Content not found")
 
         s3_key = f"{item.id}.{item.file_type}"
-        file_bytes = download_from_s3(bucket, s3_key)
-        if file_bytes is None:
-            raise ValueError("Failed to download file from S3")
+        try:
+            file_bytes = download_from_s3(bucket, s3_key)
+        except FileNotFoundError as e:
+            raise ValueError(f"File not found in storage: {e}") from e
+        except (PermissionError, RuntimeError) as e:
+            raise IOError(f"Storage unavailable: {e}") from e
 
         filename = f"{item.title or item.id}.{item.file_type}"
         media_type = item.file_type or "application/octet-stream"

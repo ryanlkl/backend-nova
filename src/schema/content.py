@@ -35,4 +35,5 @@ class FilterParams(BaseModel):
     sort_by: SortField = SortField.created_at
     order: SortOrder = SortOrder.desc
     content_type: ContentType = ContentType.market
+    search: str = ""
 

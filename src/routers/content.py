@@ -25,7 +25,7 @@ async def list_content(
     try:
         response = ContentService.list_all_content(db, filter_query)
         return response
-    
+
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=500,
@@ -41,7 +41,7 @@ async def list_content(
 
 
 @content_router.get("/{content_type}")
-async def list_content(
+async def list_content_by_content_type(
     content_type: ContentType,
     filter_query: FilterParams = Depends(FilterParams),
     db: Session = Depends(get_db)

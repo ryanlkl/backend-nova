@@ -9,14 +9,13 @@ from app_config import OPENAI_API_KEY
 
 # update all the prompts & context
 os.environ["OPENAI_API_KEY"] = OPENAI_API_KEY
-    
+
 def init_agent():
     """
     Docstring for init_agent
     """
     leg_tool = tools.search_legislation
     mar_tool = tools.search_market
-    pay_tool = tools.search_payments
 
     model = ChatOpenAI(
         model="gpt-4o",
@@ -27,7 +26,7 @@ def init_agent():
 
     initialised_agent = create_agent(
         model=model,
-        tools = [leg_tool, mar_tool, pay_tool],
+        tools = [leg_tool, mar_tool],
         system_prompt="You are an assistant, helping users with their queries.",
     )
 

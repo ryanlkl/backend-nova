@@ -27,11 +27,7 @@ class Legislation(Base):
     source = Column(Text, nullable=False)
     file_type = Column(
         Enum(
-            "pdf",
-            "docx",
-            "csv",
-            "xlsx",
-            "pptx",
+            "pdf", "docx", "csv", "xlsx", "xls", "pptx", "ppt", "txt",
             name="file_types"
         ),
         nullable=False

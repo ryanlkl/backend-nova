@@ -47,7 +47,7 @@ class ContentService:
         The assumption here being that this function is used to list all documents in the content store, so we wouldnt need to render
         the s3 objects.
         """
-        
+
         # match to table we are fetching data from
         content_map = {
         ContentType.market: Market,

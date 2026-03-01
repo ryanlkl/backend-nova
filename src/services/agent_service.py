@@ -2,13 +2,17 @@
 Docstring for services.agent
 """
 from src.utils.agent import init_agent
+import re
 
 def exec_query(query, agent):
+    result = agent.invoke({"input": query})
 
-    res = agent.invoke(
-    {"messages": [{"role": "user", "content": query}]})
-    
-    return res["messages"][-1].content
+    # Parse sources from intermediate steps as a fallback / for structured access
+    # sources = []
+    # for _, tool_output in result["intermediate_steps"]:
+    #     sources.extend(re.findall(r'\[Source: (.+?)\]', tool_output))
+
+    return result
     
     
 

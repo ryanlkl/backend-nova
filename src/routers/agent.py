@@ -15,4 +15,4 @@ async def query_agent(query: AgentQuery):
     Endpoint retrieves agent query for processing
     """
     res = exec_query(query.query, agent)
-    return {"message": res} # TODO: Change response body to include metadata including source
+    return {"result": res} # TODO: Change response body to include metadata including source

@@ -8,6 +8,7 @@ class AgentQuery(BaseModel):
     Docstring for AgentQuery schema
     """
     query: str
+    history: list
 
     def __repr__(self):
         """

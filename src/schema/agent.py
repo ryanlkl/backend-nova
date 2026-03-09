@@ -16,4 +16,5 @@ class AgentQuery(BaseModel):
         
         :param self: The AgentQuery instance
         """
+        print(f"<AgentQuery(query={self.query})>")
         return f"<AgentQuery(query={self.query})>"

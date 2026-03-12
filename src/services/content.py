@@ -328,7 +328,10 @@ class ContentService:
 
         # Filter by content_type if specified
         if filters.content_type:
-            query = query.filter(ContentHub.content_type == filters.content_type.value)
+            if filters.content_type == ContentType.legislation:
+                query = query.filter(ContentHub.content_type.in_(["legislation", "regulatory"]))
+            else:
+                query = query.filter(ContentHub.content_type == filters.content_type.value)
 
         # Filter by user-only content
         if filters.user_only:

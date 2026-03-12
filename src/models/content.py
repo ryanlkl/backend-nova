@@ -33,7 +33,17 @@ class ContentHub(Base):
     title = Column(Text, nullable=False)
     description = Column(Text, nullable=True)
     content_type = Column(
-        Enum("market", "legislation", "insight", "other", name="content_type_enum"),
+        # NOTE: `regulatory` is a legacy DB value. Keep it here to avoid
+        # runtime failures when reading existing rows, but normalize it
+        # to `legislation` at the API boundary.
+        Enum(
+            "market",
+            "legislation",
+            "regulatory",
+            "insight",
+            "other",
+            name="content_type_enum",
+        ),
         nullable=False
     )
     file_type = Column(
@@ -48,11 +58,14 @@ class ContentHub(Base):
         return f"<ContentHub(title={self.title}, content_type={self.content_type})>"
 
     def to_dict(self):
+        normalized_content_type = (
+            "legislation" if self.content_type == "regulatory" else self.content_type
+        )
         return {
             "id": str(self.id),
             "title": self.title,
             "description": self.description,
-            "content_type": self.content_type,
+            "content_type": normalized_content_type,
             "file_type": self.file_type,
             "file_size": self.file_size,
             "created_at": self.created_at,
